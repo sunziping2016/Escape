@@ -1,10 +1,10 @@
 #pragma once
 #include <windows.h>
 
-enum Button { LEFT = 0, UP, RIGHT, DOWN, JUMP, PAUSE, INVALID };
+#define MAX_VK 0x100
 
-extern int KeyboardIsDown[INVALID];
-extern int KeyboardGetNum[INVALID];
+extern int KeyboardIsDown[MAX_VK];
+extern int KeyboardGetNum[MAX_VK];
 
 void KeyboardInit();
 void KeyboardDestoy();

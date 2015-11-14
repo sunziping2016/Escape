@@ -4,4 +4,4 @@
 #define MAX_DRAWLEN		200
 #define MAX_TIMERLEN	200
 
-#define MAX_FPS			50
+#define MAX_TIMERELAPSE	20

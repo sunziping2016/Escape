@@ -51,7 +51,7 @@ int TimerAdd(void(*func)(int, int), int id, int ms)
 
 static int msHash(int ms)
 {
-	return ms / (1000 / MAX_FPS)* (1000 / MAX_FPS);
+	return (ms + MAX_TIMERELAPSE / 2) / MAX_TIMERELAPSE * MAX_TIMERELAPSE;
 }
 
 int TimerProcess(HWND hWnd)

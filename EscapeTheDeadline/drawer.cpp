@@ -49,10 +49,9 @@ void DrawerUpdateSize(HWND hWnd)
 }
 void DrawerProcess(HDC hDC)
 {
-	RECT rect = { 0, 0, DrawerX, DrawerY };
 	int i;
+	RECT rect = { 0, 0, DrawerX, DrawerY };
 	FillRect(hDCbuf, &rect, hBrushBackground);
-	SelectObject(hDCbuf, GetStockObject(GRAY_BRUSH));
 	for (i = 0; i < drawersEnd; ++i)
 		(*drawers[i].func)(hDCbuf, drawers[i].id);
 	BitBlt(hDC, 0, 0, DrawerX, DrawerY, hDCbuf, 0, 0, SRCCOPY);

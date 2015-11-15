@@ -1,4 +1,8 @@
 #include "timer.h"
+#include "assert.h"
+
+#define MAX_TIMERLEN	200
+#define MAX_TIMERELAPSE	20
 
 #define ID_TIMER 1
 
@@ -26,7 +30,7 @@ static void copyTimer(int to, int from)
 	timers[to].ms = timers[from].ms;
 }
 
-int TimerAdd(void(*func)(int, int), int id, int ms)
+int TimerAdd(void(*func)(int id, int ms), int id, int ms)
 {
 	int low = timersBegin, high = prevIter(timersEnd), i;
 	if (timersBegin == nextIter(timersEnd)) return 1;
@@ -57,12 +61,18 @@ static int msHash(int ms)
 int TimerProcess(HWND hWnd)
 {
 	int i, ms;
-	for (; timersBegin != timersEnd && msHash(timers[timersBegin].ms) == 0; timersBegin = nextIter(timersBegin))
-		(*timers[timersBegin].func)(timers[timersBegin].id, timers[timersBegin].ms);
+	long time = GetTickCount();
+	//LogPrintf("%ld:	TimerProcess Start:\n", time);
 	if (timersBegin == timersEnd) return 1;
-	ms = timers[timersBegin].ms;
-	SetTimer(hWnd, ID_TIMER, msHash(ms), NULL);
+	while(timersBegin != timersEnd) {
+		ms = msHash(timers[timersBegin].ms + (GetTickCount() - time));
+		if (ms > 0) break;
+		(*timers[timersBegin].func)(timers[timersBegin].id, timers[timersBegin].ms);
+		timersBegin = nextIter(timersBegin);
+	}
+	SetTimer(hWnd, ID_TIMER, ms, NULL);
 	for (i = timersBegin; i != timersEnd; i = nextIter(i))
 		timers[i].ms -= ms;
+	//LogPrintf("%ld:	TimerProcess End: %d\n", time, ms);
 	return 0;
 }

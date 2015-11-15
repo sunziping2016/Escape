@@ -5,49 +5,81 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Keyboard">
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{2a9b4334-f217-41ab-9f47-ae0fb9b1e96c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Drawer">
+      <UniqueIdentifier>{f30e0358-09e0-4621-ad8a-1b24f2074bf6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Keyboard">
       <UniqueIdentifier>{9006f308-0e62-4c7b-92d0-b66362f5867c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Main">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    <Filter Include="Source Files\Collision">
+      <UniqueIdentifier>{0eeb5a63-3a02-4d06-b7c4-7a6ca57219ee}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Timer">
+    <Filter Include="Source Files\Engine">
+      <UniqueIdentifier>{9bb9ad3a-7a31-4002-9e4a-3ffd00aeb786}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Timer">
       <UniqueIdentifier>{30ce88b6-5493-450b-8992-bae1d9d6e8da}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Drawer">
-      <UniqueIdentifier>{f30e0358-09e0-4621-ad8a-1b24f2074bf6}</UniqueIdentifier>
+    <Filter Include="Source Files\Log">
+      <UniqueIdentifier>{0ff80706-58c0-45e1-8537-18e7ce076ee6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Test">
+      <UniqueIdentifier>{ca27881a-2ee2-42bf-84e2-4be1443f6919}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Main</Filter>
-    </ClCompile>
     <ClCompile Include="keyboard.cpp">
-      <Filter>Keyboard</Filter>
+      <Filter>Source Files\Keyboard</Filter>
     </ClCompile>
     <ClCompile Include="timer.cpp">
-      <Filter>Timer</Filter>
+      <Filter>Source Files\Timer</Filter>
     </ClCompile>
     <ClCompile Include="drawer.cpp">
-      <Filter>Drawer</Filter>
+      <Filter>Source Files\Drawer</Filter>
+    </ClCompile>
+    <ClCompile Include="collision.cpp">
+      <Filter>Source Files\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="engine.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="log.cpp">
+      <Filter>Source Files\Log</Filter>
+    </ClCompile>
+    <ClCompile Include="test.cpp">
+      <Filter>Source Files\Test</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="keyboard.h">
-      <Filter>Keyboard</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Main</Filter>
+      <Filter>Source Files\Keyboard</Filter>
     </ClInclude>
     <ClInclude Include="timer.h">
-      <Filter>Timer</Filter>
-    </ClInclude>
-    <ClInclude Include="configure.h">
-      <Filter>Main</Filter>
+      <Filter>Source Files\Timer</Filter>
     </ClInclude>
     <ClInclude Include="drawer.h">
-      <Filter>Drawer</Filter>
+      <Filter>Source Files\Drawer</Filter>
+    </ClInclude>
+    <ClInclude Include="collision.h">
+      <Filter>Source Files\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="engine.h">
+      <Filter>Source Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="log.h">
+      <Filter>Source Files\Log</Filter>
+    </ClInclude>
+    <ClInclude Include="test.h">
+      <Filter>Source Files\Test</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

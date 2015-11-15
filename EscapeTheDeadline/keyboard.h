@@ -9,7 +9,6 @@ extern int KeyboardGetNum[MAX_VK];
 void KeyboardInit();
 void KeyboardDestoy();
 
-void KeyboardClear();
-
+void KeyboardClear(); // DEPREACTED
 void KeyboardKeyDown(WPARAM wParam);
 void KeyboardKeyUp(WPARAM wParam);

@@ -1,7 +1,6 @@
 #include <string.h>
 #include "keyboard.h"
 
-
 int KeyboardIsDown[MAX_VK];
 int KeyboardGetNum[MAX_VK];
 

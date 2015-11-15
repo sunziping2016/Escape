@@ -146,16 +146,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="collision.cpp" />
     <ClCompile Include="drawer.cpp" />
+    <ClCompile Include="engine.cpp" />
     <ClCompile Include="keyboard.cpp" />
+    <ClCompile Include="log.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="test.cpp" />
     <ClCompile Include="timer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="configure.h" />
+    <ClInclude Include="collision.h" />
     <ClInclude Include="drawer.h" />
+    <ClInclude Include="engine.h" />
     <ClInclude Include="keyboard.h" />
+    <ClInclude Include="log.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="test.h" />
     <ClInclude Include="timer.h" />
   </ItemGroup>
   <ItemGroup>

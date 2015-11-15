@@ -1,15 +1,17 @@
 #include "drawer.h"
 
+#define MAX_DRAWERNUM		200
+
 int DrawerX, DrawerY;
 static HDC hDCbuf;
 static HBITMAP hBitmap;
 static HBRUSH hBrushBackground;
 
 static struct {
-	void(*func)(HDC, int);
+	void(*func)(int, HDC);
 	int id;
 	int priority;
-} drawers[MAX_DRAWLEN];
+} drawers[MAX_DRAWERNUM];
 static int drawersEnd;
 
 static void UpdateSize(HWND hWnd)
@@ -53,7 +55,7 @@ void DrawerProcess(HDC hDC)
 	RECT rect = { 0, 0, DrawerX, DrawerY };
 	FillRect(hDCbuf, &rect, hBrushBackground);
 	for (i = 0; i < drawersEnd; ++i)
-		(*drawers[i].func)(hDCbuf, drawers[i].id);
+		(*drawers[i].func)(drawers[i].id, hDCbuf);
 	BitBlt(hDC, 0, 0, DrawerX, DrawerY, hDCbuf, 0, 0, SRCCOPY);
 }
 
@@ -64,10 +66,10 @@ static void copyDrawer(int to, int from)
 	drawers[to].priority = drawers[from].priority;
 }
 
-int DrawerAdd(void(*func)(HDC, int), int id, int priority)
+int DrawerAdd(void(*func)(int id, HDC hDC), int id, int priority)
 {
 	int low = 0, high = drawersEnd - 1, i;
-	if (drawersEnd == MAX_DRAWLEN) return 1;
+	if (drawersEnd == MAX_DRAWERNUM) return 1;
 	while (low < high)
 	{
 		int i = (low + high) / 2;
@@ -86,7 +88,8 @@ int DrawerAdd(void(*func)(HDC, int), int id, int priority)
 	++drawersEnd;
 	return 0;
 }
-void DrawerRemove(void(*func)(HDC, int), int id) // OPTIMIZE
+
+void DrawerRemove(void(*func)(int id, HDC hDC), int id)
 {
 	int pos, i;
 	for (pos = 0; pos < drawersEnd; ++pos)

@@ -68,9 +68,9 @@ void CollisionRemove(Points *(*func)(int id), int id)
 static int isCollided(int a, int b, double n[2], double *depth)
 {
 	double axisX, axisY, tmp, dx, dy;
-	int side, i, s, t, collided = 0;
-	double min[2], max[2];
-	int neginf[2], posinf[2];
+	int side, i, s, t;
+	double min[2], max[2], tmpn[2];
+	int neginf[2], posinf[2], sgn[2] = {1, -1}, first = 1;
 	Points *points[2] = { entities[a].func(entities[a].id), entities[b].func(entities[b].id) };
 	for (s = 0; s < 2; ++s) {
 		for (side = 0; side < points[s]->n - 1; ++side) {
@@ -85,7 +85,7 @@ static int isCollided(int a, int b, double n[2], double *depth)
 					points[t]->points[0][1] == points[t]->points[points[t]->n - 1][1]) continue;
 				dx = points[t]->points[1][0] - points[t]->points[0][0];
 				dy = points[t]->points[1][1] - points[t]->points[0][1];
-				if (dx * axisX + dy *axisY > 0 || dx * axisX + dy *axisY == 0 && -dx * axisY + dy * axisX < 0)
+				if (dx * axisX + dy *axisY > 0 || dx * axisX + dy *axisY == 0 && -dx * axisY + dy * axisX > 0)
 					neginf[t] = 1;
 				else
 					posinf[t] = 1;
@@ -104,27 +104,36 @@ static int isCollided(int a, int b, double n[2], double *depth)
 					if (tmp > max[t]) max[t] = tmp;
 				}
 			}
-			if ((max[0] >= min[1] || posinf[0] == 1 && posinf[1] == 0 || neginf[1] == 1 && neginf[0] == 0) && 
+			if ((max[0] >= min[1] || posinf[0] == 1 && posinf[1] == 0 || neginf[1] == 1 && neginf[0] == 0) &&
 				(min[0] <= max[1] || posinf[1] == 1 && posinf[0] == 0 || neginf[0] == 1 && neginf[1] == 0)) {
-				tmp = (max[0] - min[1]) >(max[1] - min[0]) ? max[0] - min[1] : max[1] - min[0];
-				if (neginf[0] == 1 || posinf[1] == 1) tmp = max[0] - min[1];
-				if (neginf[1] == 1 || posinf[0] == 1) tmp = max[1] - min[0];
-				if (collided == 0 || tmp > *depth) {
-					collided = 1;
-					if (tmp == max[0] - min[1] && t == 0 || tmp == max[1] - min[0] && t == 1) {
-						n[0] = axisX;
-						n[1] = axisY;
-					}
-					else {
-						n[0] = -axisX;
-						n[1] = -axisY;
-					}
+				if ((posinf[0] == 1 || neginf[1] == 1) && (posinf[1] == 1 || neginf[0] == 1)) {
+					tmp = -1;
+					tmpn[0] = axisX;
+					tmpn[1] = axisY;
+				}
+				else if (posinf[0] == 1 || neginf[1] == 1 ||
+					     posinf[1] != 1 && neginf[0] != 1 && max[0] - min[1] > max[1] - min[0]) {
+					tmp = max[1] - min[0];
+					tmpn[0] = sgn[1 - s] * axisX;
+					tmpn[1] = sgn[1 - s] * axisY;
+				}
+				else {
+					tmp = max[0] - min[1];
+					tmpn[0] = sgn[s] * axisX;
+					tmpn[1] = sgn[s] * axisY;
+				}
+				if (first || tmp != -1 && (*depth == -1 || tmp < *depth)) {
 					*depth = tmp;
+					n[0] = tmpn[0];
+					n[1] = tmpn[1];
+					first = 0;
 				}
 			}
+			else
+				return 0;
 		}
 	}
-	return collided;
+	return 1;
 }
 
 
@@ -139,7 +148,7 @@ void CollisionProcess()
 		if (i == 0 || entities[i - 1].type != entities[i].type)
 			entitiesIndex[entities[i].type] = i;
 	for (i = 0; i < entitiesEnd; ++i) {
-		for (j = 0; j < entitiesEnd; ++j) {
+		for (j = i; j < entitiesEnd; ++j) {
 			if (entities[i].othertypes == NULL && entities[j].othertypes == NULL) continue;
 			if (entities[i].othertypes != NULL)
 				for (s = 0; s < entities[i].othertypes->n && entities[j].type != entities[i].othertypes->types[s]; ++s);

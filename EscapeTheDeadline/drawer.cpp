@@ -32,7 +32,6 @@ void DrawerInit(HWND hWnd)
 	SelectObject(hDCbuf, hBitmap);
 	hBrushBackground = CreateSolidBrush(RGB(0xff, 0xff, 0xff));
 	ReleaseDC(hWnd, hDC);
-	drawersEnd = 0;
 }
 
 void DrawerDestroy()

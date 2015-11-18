@@ -29,6 +29,9 @@
     <Filter Include="Source Files\Test">
       <UniqueIdentifier>{ca27881a-2ee2-42bf-84e2-4be1443f6919}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\World">
+      <UniqueIdentifier>{623d0be8-7290-4367-8562-6de721c8f7b0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="keyboard.cpp">
@@ -55,6 +58,9 @@
     <ClCompile Include="test.cpp">
       <Filter>Source Files\Test</Filter>
     </ClCompile>
+    <ClCompile Include="world.cpp">
+      <Filter>Source Files\World</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="keyboard.h">
@@ -80,6 +86,9 @@
     </ClInclude>
     <ClInclude Include="test.h">
       <Filter>Source Files\Test</Filter>
+    </ClInclude>
+    <ClInclude Include="world.h">
+      <Filter>Source Files\World</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

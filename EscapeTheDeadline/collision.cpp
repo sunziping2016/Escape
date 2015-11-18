@@ -70,7 +70,7 @@ static int isCollided(int a, int b, double n[2], double *depth)
 	double axisX, axisY, tmp, dx, dy;
 	int side, i, s, t;
 	double min[2], max[2], tmpn[2];
-	int neginf[2], posinf[2], sgn[2] = {1, -1}, first = 1;
+	int neginf[2], posinf[2], first = 1;
 	Points *points[2] = { entities[a].func(entities[a].id), entities[b].func(entities[b].id) };
 	for (s = 0; s < 2; ++s) {
 		for (side = 0; side < points[s]->n - 1; ++side) {
@@ -114,13 +114,13 @@ static int isCollided(int a, int b, double n[2], double *depth)
 				else if (posinf[0] == 1 || neginf[1] == 1 ||
 					     posinf[1] != 1 && neginf[0] != 1 && max[0] - min[1] > max[1] - min[0]) {
 					tmp = max[1] - min[0];
-					tmpn[0] = sgn[1 - s] * axisX;
-					tmpn[1] = sgn[1 - s] * axisY;
+					tmpn[0] = -axisX;
+					tmpn[1] = -axisY;
 				}
 				else {
 					tmp = max[0] - min[1];
-					tmpn[0] = sgn[s] * axisX;
-					tmpn[1] = sgn[s] * axisY;
+					tmpn[0] = axisX;
+					tmpn[1] = axisY;
 				}
 				if (first || tmp != -1 && (*depth == -1 || tmp < *depth)) {
 					*depth = tmp;
@@ -139,16 +139,10 @@ static int isCollided(int a, int b, double n[2], double *depth)
 
 void CollisionProcess()
 {
-	int entitiesIndex[MAX_ENTITYNUM], nIndex = 0;
 	int i, j, s, t;
 	double n[2], depth;
-	memset(entitiesIndex, 0, sizeof(entitiesIndex));
-	// Build an index for better search performance
-	for (i = 0; i < entitiesEnd; ++i)
-		if (i == 0 || entities[i - 1].type != entities[i].type)
-			entitiesIndex[entities[i].type] = i;
 	for (i = 0; i < entitiesEnd; ++i) {
-		for (j = i; j < entitiesEnd; ++j) {
+		for (j = i + 1; j < entitiesEnd; ++j) {
 			if (entities[i].othertypes == NULL && entities[j].othertypes == NULL) continue;
 			if (entities[i].othertypes != NULL)
 				for (s = 0; s < entities[i].othertypes->n && entities[j].type != entities[i].othertypes->types[s]; ++s);

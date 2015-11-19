@@ -4,6 +4,7 @@
 #include "drawer.h"
 #include "timer.h"
 #include "collision.h"
+#include "world.h"
 #include "test.h"
 
 #define WALL	0
@@ -45,6 +46,7 @@ Points *CollisionMS(int id)
 void CollisionMSNotifier(int id, int othertype, int otherid, double n[2], double depth)
 {
 	double newvx, newvy;
+	//if (id == 0) return;
 	newvx = -(2 * mS[id].vy * n[0] * n[1] - mS[id].vx * (n[1] * n[1] - n[0] * n[0]));
 	newvy = -(2 * mS[id].vx * n[0] * n[1] + mS[id].vy * (n[1] * n[1] - n[0] * n[0]));
 	mS[id].vx = newvx;
@@ -55,27 +57,37 @@ void CollisionMSNotifier(int id, int othertype, int otherid, double n[2], double
 
 void DrawLine(int id, HDC hDC)
 {
+	POINT point;
+	int x, y;
+	WorldMapper(0, 0, &x, &y);
+	SetViewportOrgEx(hDC, x, y, &point);
 	POINT points[3] = { { 0 , DrawerY },{ 0 , DrawerY / 2 },{ DrawerX , DrawerY } };
 	HBRUSH hBrush = CreateSolidBrush(RGB(0x88, 0x88, 0x88));
 	SelectObject(hDC, hBrush);
 	Polygon(hDC, points, 3);
 	DeleteObject(hBrush);
+	SetViewportOrgEx(hDC, point.x, point.y, NULL);
 }
 
 void DrawMS(int id, HDC hDC)
 {
-	RECT rect = { lround(mS[id].x), lround(mS[id].y), lround(mS[id].x + 10), lround(mS[id].y + 10) };
+	POINT point;
+	int x, y;
+	WorldMapper(mS[id].x, mS[id].y, &x, &y);
+	SetViewportOrgEx(hDC, x, y, &point);
+	RECT rect = { 0, 0, 10, 10};
 	if(id==0)
 		FillRect(hDC, &rect, hred);
 	else
 		FillRect(hDC, &rect, hb);
+	SetViewportOrgEx(hDC, point.x, point.y, NULL);
 }
 
 void TimerMS(int id, int ms)
 {
 	if (id == 0) {
 		mS[id].vx += 10 * (KeyboardGetNum[VK_RIGHT] - KeyboardGetNum[VK_LEFT]);
-		mS[id].vy += 10 * (KeyboardGetNum[VK_DOWN] - KeyboardGetNum[VK_UP]) + 1;
+		mS[id].vy += 10 * (KeyboardGetNum[VK_DOWN] - KeyboardGetNum[VK_UP]);
 		KeyboardClear();
 	}
 	else
@@ -87,12 +99,19 @@ void TimerMS(int id, int ms)
 	TimerAdd(TimerMS, id, mS[id].ms + ms);
 }
 
+void Tracker(int id, double *x, double *y)
+{
+	*x = mS[id].x;
+	*y = mS[id].y;
+}
+
 void TestInit()
 {
 	int i = 0;
 	for (i = 0; i < 4; ++i)
 		CollisionAdd(CollisionBorder, i, WALL, NULL, NULL);
 	static Types types = { { WALL, SQUARE}, 2 };
+	WorldSetTracked(Tracker, 0);
 	for (i = 0; i < 60; ++i) {
 		mS[i].x = 20 + 40 * (i % 30);
 		mS[i].y = 50 + 40 * (i / 30);

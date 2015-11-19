@@ -7,4 +7,5 @@
 void WorldInit();
 void WorldDestroy();
 
-void WorldSetTracked(void(*func)(int *x, int *y), int id);
+void WorldMapper(double x, double y, int *newx, int *newy);
+void WorldSetTracked(void(*func)(int id, double *x, double *y), int id);

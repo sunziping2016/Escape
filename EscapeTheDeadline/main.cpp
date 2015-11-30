@@ -10,6 +10,8 @@
 #include "log.h"
 
 #define MAX_STRLEN		100
+#define MIN_WINHEIGHT	640
+#define MIN_WINWIDTH	960
 
 static TCHAR szWindowClass[MAX_STRLEN];
 static TCHAR szTitle[MAX_STRLEN];
@@ -59,6 +61,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HDC hDC;
 	PAINTSTRUCT ps;
+	LPMINMAXINFO lpMMI;
 	switch (message)
 	{
 	case WM_CREATE:
@@ -72,6 +75,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SIZE:
 		DrawerUpdateSize(hWnd);
 		break;
+	case WM_GETMINMAXINFO:
+		lpMMI = (LPMINMAXINFO)lParam;
+		lpMMI->ptMinTrackSize.x = MIN_WINWIDTH;
+		lpMMI->ptMinTrackSize.y = MIN_WINHEIGHT;
 	case WM_PAINT:
 		hDC = BeginPaint(hWnd, &ps);
 		DrawerProcess(hDC);
@@ -88,6 +95,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_TIMER:
 		TimerProcess(hWnd);
 		EngineProcess();
+		KeyboardClear();
 		InvalidateRect(hWnd, NULL, FALSE);
 		break;
 	case WM_DESTROY:

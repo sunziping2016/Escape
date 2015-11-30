@@ -6,6 +6,7 @@ int KeyboardGetNum[MAX_VK];
 
 void KeyboardClear()
 {
+	memset(KeyboardIsDown, 0, sizeof(KeyboardIsDown));
 	memset(KeyboardGetNum, 0, sizeof(KeyboardGetNum));
 }
 

@@ -6,6 +6,13 @@
 
 void WorldInit();
 void WorldDestroy();
+void WorldStart();
+void WorldStop();
+void WorldPause();
+void WorldResume();
 
 void WorldMapper(double x, double y, int *newx, int *newy);
 void WorldSetTracked(void(*func)(int id, double *x, double *y), int id);
+
+POINT WorldSetMapper(HDC hDC, double x, double y);
+void WorldResetMapper(HDC hDC, POINT *orign);

@@ -32,6 +32,12 @@
     <Filter Include="Source Files\World">
       <UniqueIdentifier>{623d0be8-7290-4367-8562-6de721c8f7b0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Player">
+      <UniqueIdentifier>{ab8ff329-436f-4cff-b43a-327662fc7321}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Startmenu">
+      <UniqueIdentifier>{671885b6-235a-4f8c-a95a-2d39f839b23c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="keyboard.cpp">
@@ -61,6 +67,12 @@
     <ClCompile Include="world.cpp">
       <Filter>Source Files\World</Filter>
     </ClCompile>
+    <ClCompile Include="player.cpp">
+      <Filter>Source Files\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="startmenu.cpp">
+      <Filter>Source Files\Startmenu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="keyboard.h">
@@ -89,6 +101,12 @@
     </ClInclude>
     <ClInclude Include="world.h">
       <Filter>Source Files\World</Filter>
+    </ClInclude>
+    <ClInclude Include="player.h">
+      <Filter>Source Files\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="startmenu.h">
+      <Filter>Source Files\Startmenu</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

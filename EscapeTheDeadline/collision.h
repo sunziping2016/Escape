@@ -17,9 +17,6 @@ typedef struct {
 	int n;
 } Types;
 
-void CollisionInit();
-void CollisionDestroy();
-
 int CollisionAdd(Points *(*func)(int id), int id,
 	int type, Types *othertypes,
 	void(*notifier)(int id, int othertype, int otherid, double n[2], double depth));

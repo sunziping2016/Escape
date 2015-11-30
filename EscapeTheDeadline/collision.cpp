@@ -14,9 +14,6 @@ static struct {
 } entities[MAX_ENTITYNUM]; // Sorted With type
 static int entitiesEnd;
 
-void CollisionInit() {}
-void CollisionDestroy() {}
-
 static void copyEntity(int to, int from)
 {
 	entities[to].func = entities[from].func;

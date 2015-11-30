@@ -6,6 +6,7 @@
 #include "collision.h"
 #include "world.h"
 #include "test.h"
+#include "engine.h"
 
 #define WALL	0
 #define SQUARE	1
@@ -23,7 +24,7 @@ HBRUSH hred = CreateSolidBrush(RGB(255, 0, 0));
 Points *CollisionBorder(int id)
 {
 	static Points points;
-	double border[][2] = { {0, 0}, { 0, DrawerY / 2 }, { DrawerX, DrawerY }, { DrawerX, 0 }, {0, 0} };
+	static double border[][2] = { {0, 0}, { 0, DrawerY / 2 }, { DrawerX, DrawerY }, { DrawerX, 0 }, {0, 0} };
 	points.points[0][0] = border[id][0];
 	points.points[0][1] = border[id][1];
 	points.points[1][0] = border[id + 1][0];
@@ -49,46 +50,41 @@ void CollisionMSNotifier(int id, int othertype, int otherid, double n[2], double
 	//if (id == 0) return;
 	newvx = -(2 * mS[id].vy * n[0] * n[1] - mS[id].vx * (n[1] * n[1] - n[0] * n[0]));
 	newvy = -(2 * mS[id].vx * n[0] * n[1] + mS[id].vy * (n[1] * n[1] - n[0] * n[0]));
-	mS[id].vx = newvx;
-	mS[id].vy = newvy;
+	mS[id].vx = 0.8 * newvx;
+	mS[id].vy = 0.8 * newvy;
 	mS[id].x += -depth * n[0];
 	mS[id].y += -depth * n[1];
 }
 
 void DrawLine(int id, HDC hDC)
 {
-	POINT point;
-	int x, y;
-	WorldMapper(0, 0, &x, &y);
-	SetViewportOrgEx(hDC, x, y, &point);
-	POINT points[3] = { { 0 , DrawerY },{ 0 , DrawerY / 2 },{ DrawerX , DrawerY } };
+	if (gameState != STARTED) return;
+	POINT point = WorldSetMapper(hDC, 0, 0);
+	static POINT points[3] = { { 0 , DrawerY },{ 0 , DrawerY / 2 },{ DrawerX , DrawerY } };
 	HBRUSH hBrush = CreateSolidBrush(RGB(0x88, 0x88, 0x88));
 	SelectObject(hDC, hBrush);
 	Polygon(hDC, points, 3);
 	DeleteObject(hBrush);
-	SetViewportOrgEx(hDC, point.x, point.y, NULL);
+	WorldResetMapper(hDC, &point);
 }
 
 void DrawMS(int id, HDC hDC)
 {
-	POINT point;
-	int x, y;
-	WorldMapper(mS[id].x, mS[id].y, &x, &y);
-	SetViewportOrgEx(hDC, x, y, &point);
+	if (gameState != STARTED) return;
+	POINT point = WorldSetMapper(hDC, mS[id].x, mS[id].y);
 	RECT rect = { 0, 0, 10, 10};
-	if(id==0)
-		FillRect(hDC, &rect, hred);
-	else
-		FillRect(hDC, &rect, hb);
-	SetViewportOrgEx(hDC, point.x, point.y, NULL);
+	FillRect(hDC, &rect, id == 0 ? hred : hb);
+	WorldResetMapper(hDC, &point);
 }
 
 void TimerMS(int id, int ms)
 {
+	if (gameState != STARTED) return;
+	if (KeyboardIsDown[VK_ESCAPE]) EngineStart(NOTSTARTED);
 	if (id == 0) {
 		mS[id].vx += 10 * (KeyboardGetNum[VK_RIGHT] - KeyboardGetNum[VK_LEFT]);
-		mS[id].vy += 10 * (KeyboardGetNum[VK_DOWN] - KeyboardGetNum[VK_UP]);
-		KeyboardClear();
+		mS[id].vy += 10 * (KeyboardGetNum[VK_DOWN] - KeyboardGetNum[VK_UP]) + 1;
+		//KeyboardClear();
 	}
 	else
 		mS[id].vy += 1;
@@ -112,17 +108,24 @@ void TestInit()
 		CollisionAdd(CollisionBorder, i, WALL, NULL, NULL);
 	static Types types = { { WALL, SQUARE}, 2 };
 	WorldSetTracked(Tracker, 0);
-	for (i = 0; i < 60; ++i) {
+	for (i = 0; i < 1; ++i) {
+		DrawerAdd(DrawMS, i, 10);
+		CollisionAdd(CollisionMS, i, SQUARE, &types, CollisionMSNotifier);
+	}
+	DrawerAdd(DrawLine, 0, 0);
+}
+void TestDestroy() {}
+void TestStart()
+{
+	int i;
+	for (i = 0; i < 1; ++i) {
 		mS[i].x = 20 + 40 * (i % 30);
 		mS[i].y = 50 + 40 * (i / 30);
 		mS[i].vx = 0;
 		mS[i].vy = 0;
 		mS[i].ms = 20;
-		DrawerAdd(DrawMS, i, 0);
 		TimerAdd(TimerMS, i, mS[i].ms);
-		CollisionAdd(CollisionMS, i, SQUARE, &types, CollisionMSNotifier);
 	}
-	DrawerAdd(DrawLine, 0, 0);
 }
+void TestStop() {}
 
-void TestDestroy() {}

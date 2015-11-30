@@ -1,0 +1,2 @@
+void PlayerInit();
+void PlayerDestory();

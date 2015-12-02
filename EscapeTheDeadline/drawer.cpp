@@ -2,6 +2,8 @@
 
 #define MAX_DRAWERNUM		200
 
+#pragma comment(lib, "MSIMG32.lib")
+
 int DrawerX, DrawerY;
 static HDC hDCbuf;
 static HBITMAP hBitmap;
@@ -98,4 +100,26 @@ void DrawerRemove(void(*func)(int id, HDC hDC), int id)
 	--drawersEnd;
 	for (i = pos; i < drawersEnd; i++)
 		copyDrawer(i, i + 1);
+}
+
+void DrawerAlphaColor(HDC hDest, int xDest, int yDest, int w, int h, COLORREF color, double r)
+{
+	HDC hDC;
+	HBITMAP bitmap;
+	HBRUSH brush;
+	BLENDFUNCTION blendfunction = { AC_SRC_OVER, 0, (int)(r * 0xff), 0 };
+	RECT rect = { 0, 0, w, h };
+	hDC = CreateCompatibleDC(hDest);
+	bitmap = CreateCompatibleBitmap(hDest, w, h);
+	SelectObject(hDC, bitmap);
+	brush = CreateSolidBrush(color);
+	FillRect(hDC, &rect, brush);
+	while(! AlphaBlend(hDest, xDest, yDest, w, h, hDC, 0, 0, w, h, blendfunction));
+	DeleteObject(brush);
+	DeleteObject(bitmap);
+	DeleteDC(hDC);
+}
+void DrawerAlphaBitmap(HDC hDest, int xDest, int yDest, int w, int h, HDC hSrc, int xSrc, int ySrc, COLORREF transparent, double r)
+{
+	
 }

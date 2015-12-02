@@ -38,6 +38,9 @@
     <Filter Include="Source Files\Startmenu">
       <UniqueIdentifier>{671885b6-235a-4f8c-a95a-2d39f839b23c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Pausemenu">
+      <UniqueIdentifier>{1b9ae819-a6c4-4d61-b964-082949b18a1e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="keyboard.cpp">
@@ -73,6 +76,9 @@
     <ClCompile Include="startmenu.cpp">
       <Filter>Source Files\Startmenu</Filter>
     </ClCompile>
+    <ClCompile Include="pausemenu.cpp">
+      <Filter>Source Files\Pausemenu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="keyboard.h">
@@ -107,6 +113,9 @@
     </ClInclude>
     <ClInclude Include="startmenu.h">
       <Filter>Source Files\Startmenu</Filter>
+    </ClInclude>
+    <ClInclude Include="pausemenu.h">
+      <Filter>Source Files\Pausemenu</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

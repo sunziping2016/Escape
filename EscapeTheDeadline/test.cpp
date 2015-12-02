@@ -79,8 +79,8 @@ void DrawMS(int id, HDC hDC)
 
 void TimerMS(int id, int ms)
 {
-	if (gameState != STARTED) return;
-	if (KeyboardIsDown[VK_ESCAPE]) EngineStart(NOTSTARTED);
+	if (gameState != STARTED || gamePaused) return;
+	if (KeyboardIsDown[VK_ESCAPE]) EnginePause();
 	if (id == 0) {
 		mS[id].vx += 10 * (KeyboardGetNum[VK_RIGHT] - KeyboardGetNum[VK_LEFT]);
 		mS[id].vy += 10 * (KeyboardGetNum[VK_DOWN] - KeyboardGetNum[VK_UP]) + 1;
@@ -124,8 +124,14 @@ void TestStart()
 		mS[i].vx = 0;
 		mS[i].vy = 0;
 		mS[i].ms = 20;
-		TimerAdd(TimerMS, i, mS[i].ms);
 	}
+	TestResume();
 }
 void TestStop() {}
-
+void TestResume()
+{
+	int i;
+	for (i = 0; i < 1; ++i)
+		TimerAdd(TimerMS, i, mS[i].ms);
+}
+void TestPause() {}

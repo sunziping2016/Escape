@@ -41,7 +41,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		szWindowClass, szTitle,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT,
-		CW_USEDEFAULT, CW_USEDEFAULT,
+		MIN_WINWIDTH, MIN_WINHEIGHT,
 		NULL, NULL, hInstance, NULL);
 	if (!hWnd) {
 		MessageBox(NULL, TEXT("Call to CreateWindow failed!"), szTitle, MB_OK);
@@ -99,11 +99,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		InvalidateRect(hWnd, NULL, FALSE);
 		break;
 	case WM_DESTROY:
+		EngineStop();
 		EngineDestroy();
 		TimerDestroy();
 		DrawerDestroy();
 		KeyboardDestoy();
-		PostQuitMessage(0);
 		break;
 	}
 	return DefWindowProc(hWnd, message, wParam, lParam);

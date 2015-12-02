@@ -26,7 +26,7 @@ void WorldSetTracked(void(*func)(int id, double *x, double *y), int id)
 static void UpdateView(int id, int ms)
 {
 	double trackedX, trackedY, ax, ay;
-	if (gameState != STARTED) return;
+	if (gameState != STARTED || gamePaused) return;
 	if (trackedFunc == NULL) {
 		trackedX = DrawerX / 2;
 		trackedY = DrawerY / 2;
@@ -64,11 +64,11 @@ void WorldStart()
 {
 	viewX = DrawerX / 2;
 	viewY = DrawerY / 2;
-	TimerAdd(UpdateView, 0, 20);
+	WorldResume();
 }
 void WorldStop() {}
 void WorldResume()
 {
 	TimerAdd(UpdateView, 0, 20);
 }
-void WorldPause();
+void WorldPause() {}

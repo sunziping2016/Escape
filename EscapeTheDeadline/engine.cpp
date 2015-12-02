@@ -4,37 +4,40 @@
 #include "world.h"
 #include "player.h"
 #include "startmenu.h"
+#include "pausemenu.h"
 
 #include "test.h"
 
 int gameState;
+int gamePaused;
 
-void EngineInit()
+static void StartState(int newState)
 {
-	WorldInit();
-	//PlayerInit();
-	StartmenuInit();
-	TestInit();
-	gameState = NOTSTARTED;
-	StartmenuStart();
+	gameState = newState;
+	switch (newState)
+	{
+	case NOTSTARTED:
+		StartmenuStart();
+		break;
+	case STARTED:
+		WorldStart();
+		TestStart();
+		break;
+	default:
+		break;
+	}
 }
 
-void EngineDestroy() 
+static void StopState()
 {
-	TestDestroy();
-	StartmenuDestroy();
-	//PlayerDestory();
-	WorldDestroy();
-}
-
-static void StopCurrentState()
-{
-	switch (NOTSTARTED)
+	switch (gameState)
 	{
 	case NOTSTARTED:
 		StartmenuStop();
 		break;
 	case STARTED:
+		if (gamePaused)
+			EngineResume();
 		TestStop();
 		WorldStop();
 		break;
@@ -42,29 +45,49 @@ static void StopCurrentState()
 		break;
 	}
 }
+void EngineResume()
+{
+	PausemenuStop();
+	WorldResume();
+	TestResume();
+	gamePaused = 0;
+}
+void EnginePause()
+{
+	gamePaused = 1;
+	TestPause();
+	WorldPause();
+	PausemenuStart();
+}
+
+void EngineInit()
+{
+	StartmenuInit();
+	PausemenuInit();
+	WorldInit();
+	//PlayerInit();
+	TestInit();
+	StartState(NOTSTARTED);
+	gamePaused = 0;
+}
+void EngineDestroy()
+{
+	TestDestroy();
+	//PlayerDestory();
+	WorldDestroy();
+	PausemenuDestroy();
+	StartmenuDestroy();
+}
 
 void EngineStart(int newState)
 {
-	StopCurrentState();
+	StopState();
 	KeyboardClear();
-	switch (newState)
-	{
-	case NOTSTARTED:
-		StartmenuStart();
-		break;
-	case STARTED:
-		TestStart();
-		WorldStart();
-		break;
-	default:
-		break;
-	}
-	gameState = newState;
+	StartState(newState);
 }
-
 void EngineStop()
 {
-	StopCurrentState();
+	StopState();
 	PostQuitMessage(0);
 }
 

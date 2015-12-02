@@ -152,6 +152,7 @@
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="log.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="pausemenu.cpp" />
     <ClCompile Include="player.cpp" />
     <ClCompile Include="startmenu.cpp" />
     <ClCompile Include="test.cpp" />
@@ -164,6 +165,7 @@
     <ClInclude Include="engine.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="log.h" />
+    <ClInclude Include="pausemenu.h" />
     <ClInclude Include="player.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="startmenu.h" />

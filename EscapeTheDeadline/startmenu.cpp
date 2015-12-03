@@ -33,7 +33,7 @@
 #define COLOR_BK				RGB(0xff, 0xf8, 0xdc)
 #define COLOR_DARK				RGB(0x00, 0x00, 0x00)
 
-#define MAXDARKING				20
+#define MAXDARKING				10
 
 #define GAMEFILE_DIR			TEXT("games//")
 #define GAMEFILE_EXTENSION		TEXT(".txt")
@@ -46,6 +46,7 @@ static SIZE itemSize;
 static int selected;
 static double nowpos, nowvelocity;
 static int darking;
+static enum {START, READY, END} menuState;
 
 static void GamefilesInit()
 {
@@ -121,7 +122,8 @@ static void StartmenuDrawer(int id, HDC hDC)
 	SetTextColor(hDC, COLOR_COPYRIGHT);
 	SelectObject(hDC, hCopyrightFont);
 	TextOut(hDC, DrawerX - MARGIN - copyrightSize.cx, DrawerY - MARGIN - FONTSIZE_COPYRIGHT, GAME_COPYRIGHT, copyrightLen);
-	DrawerAlphaColor(hDC, 0, 0, DrawerX, DrawerY, COLOR_DARK, r1);
+	if(darking)
+		DrawerAlphaColor(hDC, 0, 0, DrawerX, DrawerY, COLOR_DARK, r1);
 }
 
 #define factor1 0.05
@@ -131,14 +133,22 @@ static void StartmenuTimer(int id, int ms)
 {
 	double distance;
 	if (gameState != NOTSTARTED || gamefilesEnd == 0) return;
-	if (darking) {
-		if (darking >= MAXDARKING) EngineStart(STARTED);
-		++darking;
+	if (menuState == END) {
+		if (darking >= MAXDARKING)
+			EngineStart(STARTED);
+		else
+			++darking;
+	}
+	else if (menuState == START) {
+		if (darking == 0)
+			menuState = READY;
+		else
+			--darking;
 	}
 	else if (KeyboardIsDown[VK_ESCAPE])
-			EngineStop();
+		EngineStop();
 	else if (KeyboardIsDown[VK_SPACE] || KeyboardIsDown[VK_RETURN])
-		++darking;
+		menuState = END;
 	else {
 		selected = (selected + KeyboardGetNum[VK_DOWN] - KeyboardGetNum[VK_UP]
 			+ 3 * KeyboardGetNum[VK_PRIOR] - 3 * KeyboardGetNum[VK_NEXT] + 5 * gamefilesEnd) % gamefilesEnd;
@@ -180,9 +190,18 @@ void StartmenuDestroy()
 
 void StartmenuStart()
 {
+	static int first = 1;
 	selected = 0;
 	nowpos = nowvelocity = 0.0;
-	darking = 0;
+	if (first) {
+		darking = 0;
+		menuState = READY;
+		first = 0;
+	}
+	else {
+		darking = MAXDARKING;
+		menuState = START;
+	}
 	TimerAdd(StartmenuTimer, 0, 20);
 }
 void StartmenuStop() {}

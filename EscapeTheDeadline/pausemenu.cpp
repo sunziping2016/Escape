@@ -33,7 +33,7 @@
 #define COLOR_MAXR				0.9
 
 #define STEP_COLOR				10
-#define STEP_DARK				15
+#define STEP_DARK				10
 
 static TCHAR *menu[] = { TEXT("Resume"), TEXT("Main menu"), TEXT("Quit") };
 #define menuEnd					(sizeof(menu) / sizeof(menu[0]))
@@ -93,8 +93,8 @@ static void PausemenuDrawer(int id, HDC hDC)
 	if (menustate == READY) {
 		SetTextColor(hDC, COLOR_MENUSELECTED);
 		SelectObject(hDC, hSelectorFont);
-		TextOut(hDC, (DrawerX - menuSize.cx) / 2 - leftselectorSize.cx, (int)selectorpos - leftselectorSize.cy / 2, LEFT_SELECTOR, leftselectorLen);
-		TextOut(hDC, (DrawerX + menuSize.cx) / 2, (int)selectorpos - rightselectorSize.cy / 2, RIGHT_SELECTOR, rightselectorLen);
+		TextOut(hDC, (DrawerX - menuSize.cx) / 2 - leftselectorSize.cx, (int)selectorpos + (DrawerY - leftselectorSize.cy) / 2, LEFT_SELECTOR, leftselectorLen);
+		TextOut(hDC, (DrawerX + menuSize.cx) / 2, (int)selectorpos + (DrawerY - rightselectorSize.cy) / 2, RIGHT_SELECTOR, rightselectorLen);
 		SetTextColor(hDC, COLOR_DESCRIPITION);
 		SelectObject(hDC, hDescriptionFont);
 		TextOut(hDC, (DrawerX - descripitionSize.cx) / 2, DrawerY - MARGIN - FONTSIZE_DESCRIPITION, PAUSEMENU_DESCRIPITION, descripitionLen);
@@ -102,7 +102,8 @@ static void PausemenuDrawer(int id, HDC hDC)
 	SetTextColor(hDC, COLOR_TITLE);
 	SelectObject(hDC, hTitleFont);
 	TextOut(hDC, MARGIN, MARGIN, PAUSEMENU_TITLE, titleLen);
-	DrawerAlphaColor(hDC, 0, 0, DrawerX, DrawerY, RGB(0, 0, 0), sin((double)darkstep / STEP_DARK * PI / 2.0));
+	if(menustate == QUIT)
+		DrawerAlphaColor(hDC, 0, 0, DrawerX, DrawerY, RGB(0, 0, 0), sin((double)darkstep / STEP_DARK * PI / 2.0));
 }
 
 static double Factor1[menuEnd] = { 0.12, 0.08, 0.04 };
@@ -154,7 +155,7 @@ static void PausemenuTimer(int id, int ms)
 		else if (i != selected && color[i] > 1)
 			--color[i];
 	}
-	selectorvelocity += F1 * ((double)(DrawerY - menuEnd * menuSize.cy) / 2.0 + (selected + 0.5) * menuSize.cy - selectorpos) - F2 * selectorvelocity;
+	selectorvelocity += F1 * (-(double)menuEnd * menuSize.cy / 2.0 + (selected + 0.5) * menuSize.cy - selectorpos) - F2 * selectorvelocity;
 	selectorpos += selectorvelocity;
 	TimerAdd(PausemenuTimer, id, ms + 20);
 }
@@ -193,7 +194,7 @@ void PausemenuStart()
 		destpos[i] = 0.0;
 		color[i] = 0;
 	}
-	selectorpos = (double)DrawerY / 2;
+	selectorpos = 0.0;
 	selectorvelocity = 0.0;
 	TimerAdd(PausemenuTimer, 0, 20);
 }

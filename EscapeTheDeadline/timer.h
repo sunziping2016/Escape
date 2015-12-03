@@ -8,3 +8,4 @@ void TimerDestroy();
 
 int TimerAdd(void(*func)(int id, int ms), int id, int ms);
 int TimerProcess(HWND hWnd);
+void TimerClear();

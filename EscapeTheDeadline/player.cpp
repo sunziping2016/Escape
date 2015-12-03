@@ -1,119 +1,75 @@
+#include <stdio.h>
 #include <math.h>
 #include "drawer.h"
 #include "timer.h"
 #include "world.h"
 #include "engine.h"
+#include "loader.h"
 
 #include "player.h"
 
-static struct
-{
-	double rHead, rStick;
-	double lHead, lBody, lUpperarm, lForearm, lThigh, lShank, lFoot;
-	COLORREF color;
-} StickmanPara = { 15, 5, 16, 45, 26, 26, 35, 35, 7, RGB(0, 0, 0)};
+#define DOUBLEJUMP		0x01
+#define LARGER			0x02
+#define SMALLER			0x04
+#define FLY				0x08
+#define NODEATH			0x10
+#define LASER			0x20
+#define DEAD			0x40
 
 static struct
 {
-	double aBody, aHead;
-	double aUpperarm1, aForearm1;
-	double aUpperarm2, aForearm2;
-	double aThigh1, aShank1, aFoot1;
-	double aThigh2, aShank2, aFoot2;
-} StickManState[] = {
-	{ 84, 78,  -60,   46, -150,  -95,  -20, -144,  -45, -95, -130, -40 }, // Run to right BEGIN
-	{ 84, 78,  -86,   15, -130, -105,  -33, -170,  -98, -86, -110,  -8 },
-	{ 84, 78,  -90,  -22, -112,  -84,  -58,  170, -142, -78,  -98,   0 },
-	{ 82, 74,  -90,  -66, -104,  -36,  -76,  156, -178, -52,  -72,   5 },
-	{ 80, 74, -106,  -78,  -96,  -10,  -86,  160, -178, -44,  -70,   8 },
-	{ 82, 76, -132,  -70,  -78,   15, -100,  170, -134, -42,  -68,   0 },
-	{ 82, 78, -152,  -86,  -40,   90, -110, -172, -106, -16,  -80,  -4 },
-	{ 84, 78, -160,  -98,  -44,   78, -124, -145,  -75, -14, -100, -30 },
-	{ 84, 78, -160, -100,  -56,   65, -112, -140,  -75, -15, -122, -38 }  // Run to right END
-};
+	double posX, posY;
+	double vX, vY;
+	double size;
+	int State;
+	COLORREF border, fill;
+} player;
+static int hasPlayer;
 
-#define PI 3.1415926535
-
-void getPoint(double x, double y, double length, double angle, double *dx, double *dy)
+static void PlayerDrawer(int id, HDC hDC)
 {
-	*dx = x + length * cos(angle * PI / 180);
-	*dy = y - length * sin(angle * PI / 180);
-}
-
-void DrawStick(HDC hdc, double x1, double y1, double x2, double y2, double r)
-{
-	double distance = sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
-	double dx = (y1 - y2) / distance * r, dy = (x2 - x1) / distance * r;
-	POINT points[4] = { { round(x1 - dx), round(y1 - dy) },{ round(x2 - dx), round(y2 - dy) },
-		{ round(x2 + dx), round(y2 + dy) },{ round(x1 + dx), round(y1 + dy) } };
-	Ellipse(hdc, round(x1 - r), round(y1 - r), round(x1 + r), round(y1 + r));
-	Ellipse(hdc, round(x2 - r), round(y2 - r), round(x2 + r), round(y2 + r));
-	Polygon(hdc, points, 4);
-}
-
-static struct {
-	double x;
-	double y;
-	int state;
-} Player[1];
-
-void StickmanDraw(int id, HDC hdc)
-{
-	double ux, uy, nx, ny, dx, dy;
-	double x = 0, y = 0;
-	HBRUSH hBrush = CreateSolidBrush(StickmanPara.color);
-	SelectObject(hdc, hBrush);
-	int state = Player[id].state;
-	if (gameState != STARTED) return;
-	POINT point = WorldSetMapper(hdc, Player[id].x, Player[id].y);
-	getPoint(x, y, StickmanPara.lBody, StickManState[state].aBody, &ux, &uy);
-	getPoint(ux, uy, StickmanPara.lHead, StickManState[state].aHead, &nx, &ny);
-	Ellipse(hdc, nx - StickmanPara.rHead, ny - StickmanPara.rHead, nx + StickmanPara.rHead, ny + StickmanPara.rHead);
-	DrawStick(hdc, x, y, ux, uy, StickmanPara.rStick);
-	getPoint(ux, uy, StickmanPara.lUpperarm, StickManState[state].aUpperarm1, &nx, &ny);
-	DrawStick(hdc, ux, uy, nx, ny, StickmanPara.rStick);
-	getPoint(nx, ny, StickmanPara.lForearm, StickManState[state].aForearm1, &dx, &dy);
-	DrawStick(hdc, nx, ny, dx, dy, StickmanPara.rStick);
-	getPoint(ux, uy, StickmanPara.lUpperarm, StickManState[state].aUpperarm2, &nx, &ny);
-	DrawStick(hdc, ux, uy, nx, ny, StickmanPara.rStick);
-	getPoint(nx, ny, StickmanPara.lForearm, StickManState[state].aForearm2, &dx, &dy);
-	DrawStick(hdc, nx, ny, dx, dy, StickmanPara.rStick);
-	getPoint(x, y, StickmanPara.lThigh, StickManState[state].aThigh1, &nx, &ny);
-	DrawStick(hdc, x, y, nx, ny, StickmanPara.rStick);
-	getPoint(nx, ny, StickmanPara.lShank, StickManState[state].aShank1, &dx, &dy);
-	DrawStick(hdc, nx, ny, dx, dy, StickmanPara.rStick);
-	getPoint(dx, dy, StickmanPara.lFoot, StickManState[state].aFoot1, &nx, &ny);
-	DrawStick(hdc, nx, ny, dx, dy, StickmanPara.rStick);
-	getPoint(x, y, StickmanPara.lThigh, StickManState[state].aThigh2, &nx, &ny);
-	DrawStick(hdc, x, y, nx, ny, StickmanPara.rStick);
-	getPoint(nx, ny, StickmanPara.lShank, StickManState[state].aShank2, &dx, &dy);
-	DrawStick(hdc, nx, ny, dx, dy, StickmanPara.rStick);
-	getPoint(dx, dy, StickmanPara.lFoot, StickManState[state].aFoot2, &nx, &ny);
-	DrawStick(hdc, nx, ny, dx, dy, StickmanPara.rStick);
-	WorldResetMapper(hdc, &point);
+	POINT point;
+	HPEN hPen;
+	HBRUSH hBrush;
+	if (gameState != STARTED || hasPlayer == 0) return;
+	point = WorldSetMapper(hDC, player.posX, player.posY);
+	hPen = CreatePen(PS_SOLID, 1, player.border);
+	hBrush = CreateSolidBrush(player.fill);
+	SelectObject(hDC, hPen);
+	SelectObject(hDC, hBrush);
+	Rectangle(hDC, -(int)((player.size / 2.0) + 0.5), -(int)((player.size / 2.0) + 0.5), (int)((player.size / 2.0) + 0.5), (int)((player.size / 2.0) + 0.5));
 	DeleteObject(hBrush);
+	DeleteObject(hPen);
+	WorldResetMapper(hDC, &point);
 }
 
-void StickmanTime(int id, int ms)
+int PlayerCreate(wchar_t *command)
 {
-	Player[id].state = (Player[id].state + 8) % 9;
-	TimerAdd(StickmanTime, 0, ms + 20);
+	if (swscanf(command, L"%*s%lf%lf%lf%lx%lx", &player.posX, &player.posY, &player.size, &player.border, &player.fill) == 5) {
+		hasPlayer = 1;
+		player.border = DrawerRGB(player.border);
+		player.fill = DrawerRGB(player.fill);
+		return 0;
+	}
+	return 1;
 }
-
-void PlayerTracker(int id, double *x, double *y)
-{
-	*x = Player[id].x;
-	*y = Player[id].y;
-}
-
 
 void PlayerInit()
 {
-	Player[0].x = 300;
-	Player[0].y = 300;
-	Player[0].state = 0;
-	DrawerAdd(StickmanDraw, 0, 0);
-	TimerAdd(StickmanTime, 0, 20);
-	//WorldSetTracked(PlayerTracker, 0);
+	DrawerAdd(PlayerDrawer, 0, 5);
+	LoaderAdd(L"player", PlayerCreate);
 }
-void PlayerDestory() {}
+void PlayerDestroy() {}
+void PlayerStart()
+{
+	PlayerResume();
+}
+void PlayerStop()
+{
+	hasPlayer = 0;
+}
+void PlayerPause() {}
+void PlayerResume()
+{
+
+}

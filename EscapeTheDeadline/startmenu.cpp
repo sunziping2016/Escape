@@ -8,6 +8,7 @@
 #include "drawer.h"
 #include "keyboard.h"
 #include "engine.h"
+#include "loader.h"
 
 #define GAMEFILE_MAXLEN			50
 
@@ -131,6 +132,7 @@ static void StartmenuDrawer(int id, HDC hDC)
 
 static void StartmenuTimer(int id, int ms)
 {
+	TCHAR filename[MAX_PATH];
 	double distance;
 	if (gameState != NOTSTARTED || gamefilesEnd == 0) return;
 	if (menuState == END) {
@@ -147,8 +149,13 @@ static void StartmenuTimer(int id, int ms)
 	}
 	else if (KeyboardIsDown[VK_ESCAPE])
 		EngineStop();
-	else if (KeyboardIsDown[VK_SPACE] || KeyboardIsDown[VK_RETURN])
-		menuState = END;
+	else if (KeyboardIsDown[VK_SPACE] || KeyboardIsDown[VK_RETURN] || KeyboardIsDown[VK_RIGHT]) {
+		wcscpy(filename, GAMEFILE_DIR);
+		wcscat(filename, gamefiles[selected]);
+		wcscat(filename, GAMEFILE_EXTENSION);
+		if (LoaderLoad(filename) == 0)
+			menuState = END;
+	}
 	else {
 		selected = (selected + KeyboardGetNum[VK_DOWN] - KeyboardGetNum[VK_UP]
 			+ 3 * KeyboardGetNum[VK_PRIOR] - 3 * KeyboardGetNum[VK_NEXT] + 5 * gamefilesEnd) % gamefilesEnd;
@@ -191,8 +198,8 @@ void StartmenuDestroy()
 void StartmenuStart()
 {
 	static int first = 1;
-	selected = 0;
-	nowpos = nowvelocity = 0.0;
+	nowpos = (double)selected * itemSize.cy;
+	nowvelocity = 0.0;
 	if (first) {
 		darking = 0;
 		menuState = READY;

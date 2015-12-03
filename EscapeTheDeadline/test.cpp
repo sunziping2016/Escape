@@ -24,7 +24,7 @@ HBRUSH hred = CreateSolidBrush(RGB(255, 0, 0));
 Points *CollisionBorder(int id)
 {
 	static Points points;
-	static double border[][2] = { {0, 0}, { 0, DrawerY / 2 }, { DrawerX, DrawerY }, { DrawerX, 0 }, {0, 0} };
+	static double border[][2] = { {0.0, 0.0}, { 0.0, (double)DrawerY / 2.0 }, { (double)DrawerX, (double)DrawerY }, { (double)DrawerX, 0.0 }, {0.0, 0.0} };
 	points.points[0][0] = border[id][0];
 	points.points[0][1] = border[id][1];
 	points.points[1][0] = border[id + 1][0];
@@ -50,8 +50,8 @@ void CollisionMSNotifier(int id, int othertype, int otherid, double n[2], double
 	//if (id == 0) return;
 	newvx = -(2 * mS[id].vy * n[0] * n[1] - mS[id].vx * (n[1] * n[1] - n[0] * n[0]));
 	newvy = -(2 * mS[id].vx * n[0] * n[1] + mS[id].vy * (n[1] * n[1] - n[0] * n[0]));
-	mS[id].vx = 0.8 * newvx;
-	mS[id].vy = 0.8 * newvy;
+	mS[id].vx = 0.2 * newvx;
+	mS[id].vy = 0.2 * newvy;
 	mS[id].x += -depth * n[0];
 	mS[id].y += -depth * n[1];
 }
@@ -82,8 +82,9 @@ void TimerMS(int id, int ms)
 	if (gameState != STARTED || gamePaused) return;
 	if (KeyboardIsDown[VK_ESCAPE]) EnginePause();
 	if (id == 0) {
-		mS[id].vx += 10 * (KeyboardGetNum[VK_RIGHT] - KeyboardGetNum[VK_LEFT]);
-		mS[id].vy += 10 * (KeyboardGetNum[VK_DOWN] - KeyboardGetNum[VK_UP]) + 1;
+		mS[id].vx += 1 * (KeyboardGetNum[VK_RIGHT] - KeyboardGetNum[VK_LEFT]);
+		//mS[id].vy += 10 * (KeyboardGetNum[VK_DOWN] - KeyboardGetNum[VK_UP]) + 1;
+		mS[id].vy -= 20 * KeyboardGetNum[VK_SPACE] - 1;
 		//KeyboardClear();
 	}
 	else
@@ -107,7 +108,6 @@ void TestInit()
 	for (i = 0; i < 4; ++i)
 		CollisionAdd(CollisionBorder, i, WALL, NULL, NULL);
 	static Types types = { { WALL, SQUARE}, 2 };
-	WorldSetTracked(Tracker, 0);
 	for (i = 0; i < 1; ++i) {
 		DrawerAdd(DrawMS, i, 10);
 		CollisionAdd(CollisionMS, i, SQUARE, &types, CollisionMSNotifier);
@@ -119,12 +119,13 @@ void TestStart()
 {
 	int i;
 	for (i = 0; i < 1; ++i) {
-		mS[i].x = 20 + 40 * (i % 30);
+		mS[i].x = 20 + 20 * (i % 30);
 		mS[i].y = 50 + 40 * (i / 30);
 		mS[i].vx = 0;
 		mS[i].vy = 0;
 		mS[i].ms = 20;
 	}
+	WorldSetTracked(Tracker, 0);
 	TestResume();
 }
 void TestStop() {}

@@ -1,2 +1,6 @@
 void PlayerInit();
-void PlayerDestory();
+void PlayerDestroy();
+void PlayerStart();
+void PlayerStop();
+void PlayerPause();
+void PlayerResume();

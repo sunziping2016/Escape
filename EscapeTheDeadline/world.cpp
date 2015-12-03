@@ -20,7 +20,7 @@ void WorldSetTracked(void(*func)(int id, double *x, double *y), int id)
 	trackedID = id;
 }
 
-#define factor1 0.03
+#define factor1 0.05
 #define factor2 (2 * sqrt(factor1))
 
 static void UpdateView(int id, int ms)
@@ -66,7 +66,11 @@ void WorldStart()
 	viewY = DrawerY / 2;
 	WorldResume();
 }
-void WorldStop() {}
+void WorldStop()
+{
+	trackedFunc = NULL;
+	trackedID = 0;
+}
 void WorldResume()
 {
 	TimerAdd(UpdateView, 0, 20);

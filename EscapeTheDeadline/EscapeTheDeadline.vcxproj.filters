@@ -41,6 +41,12 @@
     <Filter Include="Source Files\Pausemenu">
       <UniqueIdentifier>{1b9ae819-a6c4-4d61-b964-082949b18a1e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Loader">
+      <UniqueIdentifier>{64c5093b-28d4-413b-bb71-16d13ffa71ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\CommonUI">
+      <UniqueIdentifier>{e7f545a3-eff0-4f96-b183-7459c5699a56}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="keyboard.cpp">
@@ -79,6 +85,12 @@
     <ClCompile Include="pausemenu.cpp">
       <Filter>Source Files\Pausemenu</Filter>
     </ClCompile>
+    <ClCompile Include="loader.cpp">
+      <Filter>Source Files\Loader</Filter>
+    </ClCompile>
+    <ClCompile Include="commonui.cpp">
+      <Filter>Source Files\CommonUI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="keyboard.h">
@@ -116,6 +128,12 @@
     </ClInclude>
     <ClInclude Include="pausemenu.h">
       <Filter>Source Files\Pausemenu</Filter>
+    </ClInclude>
+    <ClInclude Include="loader.h">
+      <Filter>Source Files\Loader</Filter>
+    </ClInclude>
+    <ClInclude Include="commonui.h">
+      <Filter>Source Files\CommonUI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

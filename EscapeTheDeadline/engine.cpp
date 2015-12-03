@@ -1,5 +1,6 @@
 #include "engine.h"
 #include "keyboard.h"
+#include "timer.h"
 #include "collision.h"
 #include "world.h"
 #include "player.h"
@@ -22,6 +23,7 @@ static void StartState(int newState)
 	case STARTED:
 		WorldStart();
 		TestStart();
+		PlayerStart();
 		break;
 	default:
 		break;
@@ -38,6 +40,7 @@ static void StopState()
 	case STARTED:
 		if (gamePaused)
 			EngineResume();
+		PlayerStop();
 		TestStop();
 		WorldStop();
 		break;
@@ -50,11 +53,13 @@ void EngineResume()
 	PausemenuStop();
 	WorldResume();
 	TestResume();
+	PlayerResume();
 	gamePaused = 0;
 }
 void EnginePause()
 {
 	gamePaused = 1;
+	PlayerPause();
 	TestPause();
 	WorldPause();
 	PausemenuStart();
@@ -65,15 +70,15 @@ void EngineInit()
 	StartmenuInit();
 	PausemenuInit();
 	WorldInit();
-	//PlayerInit();
 	TestInit();
+	PlayerInit();
 	StartState(NOTSTARTED);
 	gamePaused = 0;
 }
 void EngineDestroy()
 {
+	PlayerDestroy();
 	TestDestroy();
-	//PlayerDestory();
 	WorldDestroy();
 	PausemenuDestroy();
 	StartmenuDestroy();
@@ -83,6 +88,7 @@ void EngineStart(int newState)
 {
 	StopState();
 	KeyboardClear();
+	TimerClear();
 	StartState(newState);
 }
 void EngineStop()

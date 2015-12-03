@@ -1,6 +1,6 @@
 #pragma once
 
-enum GAMESTATE { NOTSTARTED, STARTED, DIED };
+enum GAMESTATE { NOTSTARTED, STARTED, DIED, IDLE};
 
 extern int gameState;
 extern int gamePaused;

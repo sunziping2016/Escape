@@ -107,7 +107,7 @@ void DrawerAlphaColor(HDC hDest, int xDest, int yDest, int w, int h, COLORREF co
 	HDC hDC;
 	HBITMAP bitmap;
 	HBRUSH brush;
-	BLENDFUNCTION blendfunction = { AC_SRC_OVER, 0, (int)(r * 0xff), 0 };
+	BLENDFUNCTION blendfunction = { AC_SRC_OVER, 0, (BYTE)(r * 0xff), 0 };
 	RECT rect = { 0, 0, w, h };
 	hDC = CreateCompatibleDC(hDest);
 	bitmap = CreateCompatibleBitmap(hDest, w, h);

@@ -8,7 +8,7 @@
 #include "drawer.h"
 #include "keyboard.h"
 #include "engine.h"
-
+#include "loader.h"
 
 #define PAUSEMENU_TITLE			TEXT("PAUSED")
 #define PAUSEMENU_DESCRIPITION	TEXT("Press SPACE to select the menu.")
@@ -26,8 +26,8 @@
 #define MARGIN					64
 
 #define COLOR_TITLE				RGB(0xb2, 0x22, 0x22)
-#define COLOR_MENUSELECTED		RGB(0xff, 0x00, 0xff)
-#define COLOR_MENU				RGB(0x56, 0x3d, 0x7c)
+#define COLOR_PAUSEMENUSELECTED	RGB(0xff, 0x00, 0xff)
+#define COLOR_PAUSEMENU			RGB(0x56, 0x3d, 0x7c)
 #define COLOR_DESCRIPITION		RGB(0x00, 0x80, 0x80)
 #define COLOR_BLUR				RGB(0xff, 0xf8, 0xdc)
 #define COLOR_MAXR				0.9
@@ -35,20 +35,20 @@
 #define STEP_COLOR				10
 #define STEP_DARK				10
 
-static TCHAR *menu[] = { TEXT("Resume"), TEXT("Main menu"), TEXT("Quit") };
+static TCHAR *menu[] = { TEXT("Resume"), TEXT("Replay"), TEXT("Main menu"), TEXT("Quit") };
 #define menuEnd					(sizeof(menu) / sizeof(menu[0]))
 
 static int selected;
 static double pos[menuEnd], velocity[menuEnd], destpos[menuEnd];
 static double selectorpos, selectorvelocity;
 static int color[menuEnd];
-static enum { FLYIN, FLYOUT, QUIT, READY } menustate;
+static enum { FLYIN, FLYOUT, QUIT, READY, REPLAY} menustate;
 static SIZE menuSize;
 static int darkstep;
 
 static HFONT hTitleFont, hMenuFont, hDescriptionFont, hSelectorFont;
 
-#define EPSILON 240.0
+#define EPSILON (DrawerX / 2)
 #define PI 3.1415926535
 
 static void PausemenuDrawer(int id, HDC hDC)
@@ -86,12 +86,12 @@ static void PausemenuDrawer(int id, HDC hDC)
 		first = 0;
 	}
 	for (i = 0; i < menuEnd; ++i) {
-		SetTextColor(hDC, DrawerColor(COLOR_MENUSELECTED, COLOR_MENU, (double)color[i] / (STEP_COLOR - 1)));
+		SetTextColor(hDC, DrawerColor(COLOR_PAUSEMENUSELECTED, COLOR_PAUSEMENU, (double)color[i] / (STEP_COLOR - 1)));
 		SelectObject(hDC, hMenuFont);
 		TextOut(hDC, (DrawerX - size[i].cx) / 2 + (int)pos[i], (DrawerY - menuEnd * size[i].cy) / 2 + i * size[i].cy, menu[i], len[i]);
 	}
 	if (menustate == READY) {
-		SetTextColor(hDC, COLOR_MENUSELECTED);
+		SetTextColor(hDC, COLOR_PAUSEMENUSELECTED);
 		SelectObject(hDC, hSelectorFont);
 		TextOut(hDC, (DrawerX - menuSize.cx) / 2 - leftselectorSize.cx, (int)selectorpos + (DrawerY - leftselectorSize.cy) / 2, LEFT_SELECTOR, leftselectorLen);
 		TextOut(hDC, (DrawerX + menuSize.cx) / 2, (int)selectorpos + (DrawerY - rightselectorSize.cy) / 2, RIGHT_SELECTOR, rightselectorLen);
@@ -102,11 +102,11 @@ static void PausemenuDrawer(int id, HDC hDC)
 	SetTextColor(hDC, COLOR_TITLE);
 	SelectObject(hDC, hTitleFont);
 	TextOut(hDC, MARGIN, MARGIN, PAUSEMENU_TITLE, titleLen);
-	if(menustate == QUIT)
+	if(menustate == QUIT || menustate == REPLAY)
 		DrawerAlphaColor(hDC, 0, 0, DrawerX, DrawerY, RGB(0, 0, 0), sin((double)darkstep / STEP_DARK * PI / 2.0));
 }
 
-static double Factor1[menuEnd] = { 0.12, 0.08, 0.04 };
+static double Factor1[menuEnd] = { 0.16, 0.12, 0.08, 0.04 };
 static double Factor2[menuEnd];
 
 #define F1				0.12
@@ -124,10 +124,19 @@ static void PausemenuTimer(int id, int ms)
 		if ((DrawerX + menuSize.cx) / 2 + pos[menuEnd - 1] < 0.0)
 			EngineResume();
 	}
-	else if (menustate == QUIT) {
+	else if (menustate == QUIT || menustate == REPLAY) {
 		++darkstep;
-		if (darkstep == STEP_DARK)
-			EngineStart(NOTSTARTED);
+		if (darkstep == STEP_DARK) {
+			if (menustate == QUIT)
+				EngineStart(NOTSTARTED);
+			else {
+				EngineStart(IDLE);
+				if (LoaderReload() == 0)
+					EngineStart(STARTED);
+				else
+					EngineStart(NOTSTARTED);
+			}
+		}
 	}
 	else if (KeyboardIsDown[VK_SPACE] || KeyboardIsDown[VK_RETURN] || KeyboardIsDown[VK_ESCAPE]) {
 		if (selected == 0 || KeyboardIsDown[VK_ESCAPE]) {
@@ -135,10 +144,12 @@ static void PausemenuTimer(int id, int ms)
 			for (i = 0; i < menuEnd; ++i)
 				destpos[i] = -(DrawerX + menuSize.cx) / 2 - EPSILON;
 		}
+		else if (selected == 1)
+			menustate = REPLAY;
 		else if (selected == 2)
-			EngineStop();
-		else
 			menustate = QUIT;
+		else
+			EngineStop();
 	}
 	else {
 		selected = selected + KeyboardGetNum[VK_DOWN] - KeyboardGetNum[VK_UP];

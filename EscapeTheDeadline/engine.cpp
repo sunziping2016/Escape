@@ -22,8 +22,8 @@ static void StartState(int newState)
 		break;
 	case STARTED:
 		WorldStart();
-		TestStart();
 		PlayerStart();
+		PausemenuTriggerStart();
 		break;
 	default:
 		break;
@@ -40,8 +40,8 @@ static void StopState()
 	case STARTED:
 		if (gamePaused)
 			EngineResume();
+		PausemenuTriggerStop();
 		PlayerStop();
-		TestStop();
 		WorldStop();
 		break;
 	default:
@@ -52,7 +52,6 @@ void EngineResume()
 {
 	PausemenuStop();
 	WorldResume();
-	TestResume();
 	PlayerResume();
 	gamePaused = 0;
 }
@@ -60,7 +59,6 @@ void EnginePause()
 {
 	gamePaused = 1;
 	PlayerPause();
-	TestPause();
 	WorldPause();
 	PausemenuStart();
 }
@@ -70,7 +68,6 @@ void EngineInit()
 	StartmenuInit();
 	PausemenuInit();
 	WorldInit();
-	TestInit();
 	PlayerInit();
 	StartState(NOTSTARTED);
 	gamePaused = 0;
@@ -78,7 +75,6 @@ void EngineInit()
 void EngineDestroy()
 {
 	PlayerDestroy();
-	TestDestroy();
 	WorldDestroy();
 	PausemenuDestroy();
 	StartmenuDestroy();

@@ -47,6 +47,9 @@
     <Filter Include="Source Files\CommonUI">
       <UniqueIdentifier>{e7f545a3-eff0-4f96-b183-7459c5699a56}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Ground">
+      <UniqueIdentifier>{ace2a7f2-22bf-4365-bffa-f8016a825150}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="keyboard.cpp">
@@ -91,6 +94,9 @@
     <ClCompile Include="commonui.cpp">
       <Filter>Source Files\CommonUI</Filter>
     </ClCompile>
+    <ClCompile Include="ground.cpp">
+      <Filter>Source Files\Ground</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="keyboard.h">
@@ -134,6 +140,9 @@
     </ClInclude>
     <ClInclude Include="commonui.h">
       <Filter>Source Files\CommonUI</Filter>
+    </ClInclude>
+    <ClInclude Include="ground.h">
+      <Filter>Source Files\Ground</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

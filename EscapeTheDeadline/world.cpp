@@ -1,14 +1,35 @@
+#include <stdio.h>
 #include <math.h>
 #include "drawer.h"
 #include "timer.h"
 #include "world.h"
 #include "engine.h"
+#include "loader.h"
 
 static double viewX, viewY;
 static double viewVX, viewVY;
 
+double gravity;
+
+static int GravityCreate(wchar_t *command)
+{
+	if (swscanf(command, L"%*s%lf", &gravity) == 1)
+		return 0;
+	return 1;
+}
+
 static void UpdateView(int id, int ms);
-void WorldInit() {}
+static int WorldCreate(wchar_t *command)
+{
+	if (swscanf(command, L"%*s%lf%lf", &viewX, &viewY) == 2)
+		return 0;
+	return 1;
+}
+void WorldInit()
+{
+	LoaderAdd(L"world", WorldCreate);
+	LoaderAdd(L"gravity", GravityCreate);
+}
 void WorldDestroy() {}
 
 static void(*trackedFunc)(int id, double *x, double *y);
@@ -62,14 +83,13 @@ void WorldResetMapper(HDC hDC, POINT *orign)
 }
 void WorldStart()
 {
-	viewX = DrawerX / 2;
-	viewY = DrawerY / 2;
 	WorldResume();
 }
 void WorldStop()
 {
 	trackedFunc = NULL;
 	trackedID = 0;
+	gravity = 0.0;
 }
 void WorldResume()
 {

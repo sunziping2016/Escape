@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <tchar.h>
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include "pausemenu.h"
@@ -35,7 +36,7 @@
 #define STEP_COLOR				10
 #define STEP_DARK				10
 
-static TCHAR *menu[] = { TEXT("Resume"), TEXT("Replay"), TEXT("Main menu"), TEXT("Quit") };
+static TCHAR *menu[] = { TEXT("Resume"), TEXT("Reload"), TEXT("Main menu"), TEXT("Quit") };
 #define menuEnd					(sizeof(menu) / sizeof(menu[0]))
 
 static int selected;
@@ -45,6 +46,7 @@ static int color[menuEnd];
 static enum { FLYIN, FLYOUT, QUIT, READY, REPLAY} menustate;
 static SIZE menuSize;
 static int darkstep;
+static int hasPausemenu;
 
 static HFONT hTitleFont, hMenuFont, hDescriptionFont, hSelectorFont;
 
@@ -58,7 +60,7 @@ static void PausemenuDrawer(int id, HDC hDC)
 	static int first = 1;
 	int i;
 	double r;
-	if (!gamePaused) return;
+	if (gameState != STARTED || !gamePaused) return;
 	if (menustate != FLYOUT)
 		r = 1 - fabs(pos[menuEnd - 1]) / DrawerX;
 	else
@@ -115,7 +117,7 @@ static double Factor2[menuEnd];
 static void PausemenuTimer(int id, int ms)
 {
 	int i;
-	if (!gamePaused) return;
+	if (gameState != STARTED || !gamePaused) return;
 	if (menustate == FLYIN) {
 		if (fabs(pos[menuEnd - 1] - destpos[menuEnd - 1]) < EPSILON)
 			menustate = READY;
@@ -131,10 +133,8 @@ static void PausemenuTimer(int id, int ms)
 				EngineStart(NOTSTARTED);
 			else {
 				EngineStart(IDLE);
-				if (LoaderReload() == 0)
-					EngineStart(STARTED);
-				else
-					EngineStart(NOTSTARTED);
+				LoaderReload();
+				EngineStart(STARTED);
 			}
 		}
 	}
@@ -171,28 +171,13 @@ static void PausemenuTimer(int id, int ms)
 	TimerAdd(PausemenuTimer, id, ms + 20);
 }
 
-void PausemenuInit()
+int PausemenuCreate(wchar_t *command)
 {
-	int i;
-	for (i = 0; i < menuEnd; ++i)
-		Factor2[i] = 2.0 * sqrt(Factor1[i]);
-	hTitleFont = CreateFont(FONTSIZE_TITLE, 0, 0, 0, 0, FALSE, FALSE, FALSE,
-		ANSI_CHARSET, 0, 0, 0, FIXED_PITCH, FONTNAME_SANS);
-	hMenuFont = CreateFont(FONTSIZE_MENU, 0, 0, 0, 0, FALSE, FALSE, FALSE,
-		ANSI_CHARSET, 0, 0, 0, FIXED_PITCH, FONTNAME);
-	hDescriptionFont = CreateFont(FONTSIZE_DESCRIPITION, 0, 0, 0, 0, FALSE, FALSE, FALSE,
-		ANSI_CHARSET, 0, 0, 0, FIXED_PITCH, FONTNAME_SANS);
-	hSelectorFont = CreateFont(FONTSIZE_SELECTOR, 0, 0, 0, 0, FALSE, FALSE, FALSE,
-		ANSI_CHARSET, 0, 0, 0, FIXED_PITCH, FONTNAME_SANS);
-	DrawerAdd(PausemenuDrawer, 0, 0);
+	if (swscanf(command, L"%*s%d", &hasPausemenu) == 1)
+		return 0;
+	return 1;
 }
-void PausemenuDestroy()
-{
-	DeleteObject(hSelectorFont);
-	DeleteObject(hDescriptionFont);
-	DeleteObject(hMenuFont);
-	DeleteObject(hTitleFont);
-}
+
 void PausemenuStart()
 {
 	int i;
@@ -210,3 +195,44 @@ void PausemenuStart()
 	TimerAdd(PausemenuTimer, 0, 20);
 }
 void PausemenuStop() {}
+void PausemenuInit()
+{
+	int i;
+	for (i = 0; i < menuEnd; ++i)
+		Factor2[i] = 2.0 * sqrt(Factor1[i]);
+	hTitleFont = CreateFont(FONTSIZE_TITLE, 0, 0, 0, 0, FALSE, FALSE, FALSE,
+		ANSI_CHARSET, 0, 0, 0, FIXED_PITCH, FONTNAME_SANS);
+	hMenuFont = CreateFont(FONTSIZE_MENU, 0, 0, 0, 0, FALSE, FALSE, FALSE,
+		ANSI_CHARSET, 0, 0, 0, FIXED_PITCH, FONTNAME);
+	hDescriptionFont = CreateFont(FONTSIZE_DESCRIPITION, 0, 0, 0, 0, FALSE, FALSE, FALSE,
+		ANSI_CHARSET, 0, 0, 0, FIXED_PITCH, FONTNAME_SANS);
+	hSelectorFont = CreateFont(FONTSIZE_SELECTOR, 0, 0, 0, 0, FALSE, FALSE, FALSE,
+		ANSI_CHARSET, 0, 0, 0, FIXED_PITCH, FONTNAME_SANS);
+	DrawerAdd(PausemenuDrawer, 0, 0);
+	LoaderAdd(L"pausemenu", PausemenuCreate);
+	hasPausemenu = 1;
+}
+void PausemenuDestroy()
+{
+	DeleteObject(hSelectorFont);
+	DeleteObject(hDescriptionFont);
+	DeleteObject(hMenuFont);
+	DeleteObject(hTitleFont);
+}
+
+static void PausemenuTriggerTimer(int id, int ms)
+{
+	if (gameState != STARTED) return;
+	if (gamePaused == 0 && KeyboardIsDown[VK_ESCAPE])
+		EnginePause();
+	TimerAdd(PausemenuTriggerTimer, id, ms + 20);
+}
+void PausemenuTriggerStart()
+{
+	if (hasPausemenu)
+		TimerAdd(PausemenuTriggerTimer, 0, 20);
+}
+void PausemenuTriggerStop()
+{
+	hasPausemenu = 1;
+}

@@ -1,3 +1,4 @@
+#pragma once
 void PlayerInit();
 void PlayerDestroy();
 void PlayerStart();

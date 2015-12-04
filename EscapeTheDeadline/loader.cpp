@@ -26,6 +26,7 @@ int LoaderLoad(TCHAR *filename)
 	_wfopen_s(&file, filename, L"r");
 	int error = 0, i, ret;
 	while (fgetws(buffer, BUFFERSIZE, file) != NULL) {
+		if (buffer[0] == '\n' || buffer[0] == '#') continue;
 		if (swscanf(buffer, L"%s", command) != 1) {
 			error = 1;
 			break;
@@ -35,7 +36,7 @@ int LoaderLoad(TCHAR *filename)
 				ret = Commands[i].commandFunc(buffer);
 				break;
 			}
-		if (ret != 0) {
+		if (ret != 0 || i == commandsEnd) {
 			error = 1;
 			break;
 		}

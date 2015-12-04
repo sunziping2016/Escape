@@ -153,8 +153,8 @@ static void StartmenuTimer(int id, int ms)
 		wcscpy(filename, GAMEFILE_DIR);
 		wcscat(filename, gamefiles[selected]);
 		wcscat(filename, GAMEFILE_EXTENSION);
-		if (LoaderLoad(filename) == 0)
-			menuState = END;
+		LoaderLoad(filename);
+		menuState = END;
 	}
 	else {
 		selected = (selected + KeyboardGetNum[VK_DOWN] - KeyboardGetNum[VK_UP]

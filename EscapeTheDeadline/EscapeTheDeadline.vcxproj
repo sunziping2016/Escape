@@ -150,6 +150,7 @@
     <ClCompile Include="commonui.cpp" />
     <ClCompile Include="drawer.cpp" />
     <ClCompile Include="engine.cpp" />
+    <ClCompile Include="ground.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="loader.cpp" />
     <ClCompile Include="log.cpp" />
@@ -166,6 +167,7 @@
     <ClInclude Include="commonui.h" />
     <ClInclude Include="drawer.h" />
     <ClInclude Include="engine.h" />
+    <ClInclude Include="ground.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="loader.h" />
     <ClInclude Include="log.h" />

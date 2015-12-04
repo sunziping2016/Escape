@@ -4,6 +4,8 @@
 // Create a virtual coordinate system regardless of the real windows size.
 // And user can set tracked object when it showed always be shown in the window
 
+extern double gravity;
+
 void WorldInit();
 void WorldDestroy();
 void WorldStart();

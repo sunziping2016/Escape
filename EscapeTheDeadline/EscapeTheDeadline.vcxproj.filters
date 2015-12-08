@@ -26,9 +26,6 @@
     <Filter Include="Source Files\Log">
       <UniqueIdentifier>{0ff80706-58c0-45e1-8537-18e7ce076ee6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Test">
-      <UniqueIdentifier>{ca27881a-2ee2-42bf-84e2-4be1443f6919}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\World">
       <UniqueIdentifier>{623d0be8-7290-4367-8562-6de721c8f7b0}</UniqueIdentifier>
     </Filter>
@@ -49,6 +46,12 @@
     </Filter>
     <Filter Include="Source Files\Ground">
       <UniqueIdentifier>{ace2a7f2-22bf-4365-bffa-f8016a825150}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Deathmenu">
+      <UniqueIdentifier>{2647a78b-c664-47fb-a8a4-7c540a32c1f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Grid">
+      <UniqueIdentifier>{71a602e7-b664-4164-86d2-d0c5d6811cda}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -73,9 +76,6 @@
     <ClCompile Include="log.cpp">
       <Filter>Source Files\Log</Filter>
     </ClCompile>
-    <ClCompile Include="test.cpp">
-      <Filter>Source Files\Test</Filter>
-    </ClCompile>
     <ClCompile Include="world.cpp">
       <Filter>Source Files\World</Filter>
     </ClCompile>
@@ -96,6 +96,12 @@
     </ClCompile>
     <ClCompile Include="ground.cpp">
       <Filter>Source Files\Ground</Filter>
+    </ClCompile>
+    <ClCompile Include="deathmenu.cpp">
+      <Filter>Source Files\Deathmenu</Filter>
+    </ClCompile>
+    <ClCompile Include="grid.cpp">
+      <Filter>Source Files\Grid</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -120,9 +126,6 @@
     <ClInclude Include="log.h">
       <Filter>Source Files\Log</Filter>
     </ClInclude>
-    <ClInclude Include="test.h">
-      <Filter>Source Files\Test</Filter>
-    </ClInclude>
     <ClInclude Include="world.h">
       <Filter>Source Files\World</Filter>
     </ClInclude>
@@ -144,6 +147,12 @@
     <ClInclude Include="ground.h">
       <Filter>Source Files\Ground</Filter>
     </ClInclude>
+    <ClInclude Include="deathmenu.h">
+      <Filter>Source Files\Deathmenu</Filter>
+    </ClInclude>
+    <ClInclude Include="grid.h">
+      <Filter>Source Files\Grid</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="EscapeTheDeadline.rc">
@@ -154,5 +163,8 @@
     <Image Include="IDI_APP_ICON.ico">
       <Filter>Resource Files</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" />
   </ItemGroup>
 </Project>

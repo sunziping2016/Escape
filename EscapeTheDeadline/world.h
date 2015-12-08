@@ -1,10 +1,13 @@
 #pragma once
 #include <windows.h>
+#include <math.h>
 
 // Create a virtual coordinate system regardless of the real windows size.
 // And user can set tracked object when it showed always be shown in the window
 
-extern double gravity;
+#define ROUND(pos)		((int)lround(pos))
+
+extern double viewX, viewY;
 
 void WorldInit();
 void WorldDestroy();
@@ -13,8 +16,7 @@ void WorldStop();
 void WorldPause();
 void WorldResume();
 
-void WorldMapper(double x, double y, int *newx, int *newy);
+int WorldX(double x);
+int WorldY(double y);
+void WorldSetViewport(double x, double y);
 void WorldSetTracked(void(*func)(int id, double *x, double *y), int id);
-
-POINT WorldSetMapper(HDC hDC, double x, double y);
-void WorldResetMapper(HDC hDC, POINT *orign);

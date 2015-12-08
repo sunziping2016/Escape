@@ -62,41 +62,43 @@ void CollisionRemove(Points *(*func)(int id), int id)
 		copyEntity(i, i + 1);
 }
 
-static int isCollided(int a, int b, double n[2], double *depth)
+#define EPSILON		1e-8
+
+static int isCollided(Points *a, Points *b, double n[2], double *depth)
 {
-	double axisX, axisY, tmp, dx, dy;
+	double axisX, axisY, tmp, dx, dy, eX, eY;
 	int side, i, s, t;
 	double min[2], max[2], tmpn[2];
 	int neginf[2], posinf[2], first = 1;
-	Points *points[2] = { entities[a].func(entities[a].id), entities[b].func(entities[b].id) };
+	Points *points[2] = { a, b };
 	for (s = 0; s < 2; ++s) {
 		for (side = 0; side < points[s]->n - 1; ++side) {
 			axisX = points[s]->points[side][1] - points[s]->points[side + 1][1];
 			axisY = points[s]->points[side + 1][0] - points[s]->points[side][0];
 			tmp = sqrt(axisX * axisX + axisY * axisY);
-			axisX /= tmp;
-			axisY /= tmp;
+			eX = axisX / tmp;
+			eY = axisY / tmp;
 			for (t = 0; t < 2; ++t) {
 				neginf[t] = posinf[t] = 0;
 				if (points[t]->points[0][0] == points[t]->points[points[t]->n - 1][0] &&
 					points[t]->points[0][1] == points[t]->points[points[t]->n - 1][1]) continue;
 				dx = points[t]->points[1][0] - points[t]->points[0][0];
 				dy = points[t]->points[1][1] - points[t]->points[0][1];
-				if (dx * axisX + dy *axisY > 0 || dx * axisX + dy *axisY == 0 && -dx * axisY + dy * axisX > 0)
+				if (dx * axisX + dy *axisY > 0.0 || dx * axisX + dy * axisY == 0.0 && -dx * axisY + dy * axisX > 0.0)
 					neginf[t] = 1;
 				else
 					posinf[t] = 1;
 				dx = points[t]->points[points[t]->n - 1][0] - points[t]->points[0][0];
 				dy = points[t]->points[points[t]->n - 1][1] - points[t]->points[0][1];
-				if (dx * axisX + dy *axisY < 0 || dx * axisX + dy *axisY == 0 && -dx * axisY + dy * axisX > 0)
+				if (dx * axisX + dy *axisY < 0.0 || dx * axisX + dy * axisY == 0.0 && -dx * axisY + dy * axisX > 0.0)
 					neginf[t] = 1;
 				else
 					posinf[t] = 1;
 			}
 			for (t = 0; t < 2; ++t) {
-				min[t] = max[t] = points[t]->points[0][0] * axisX + points[t]->points[0][1] * axisY;
+				min[t] = max[t] = points[t]->points[0][0] * eX + points[t]->points[0][1] * eY;
 				for (i = 1; i < points[t]->n - 1; ++i) {
-					tmp = points[t]->points[i][0] * axisX + points[t]->points[i][1] * axisY;
+					tmp = points[t]->points[i][0] * eX + points[t]->points[i][1] * eY;
 					if (tmp < min[t]) min[t] = tmp;
 					if (tmp > max[t]) max[t] = tmp;
 				}
@@ -105,19 +107,19 @@ static int isCollided(int a, int b, double n[2], double *depth)
 				(min[0] <= max[1] || posinf[1] == 1 && posinf[0] == 0 || neginf[0] == 1 && neginf[1] == 0)) {
 				if ((posinf[0] == 1 || neginf[1] == 1) && (posinf[1] == 1 || neginf[0] == 1)) {
 					tmp = -1;
-					tmpn[0] = axisX;
-					tmpn[1] = axisY;
+					tmpn[0] = eX;
+					tmpn[1] = eY;
 				}
 				else if (posinf[0] == 1 || neginf[1] == 1 ||
 					     posinf[1] != 1 && neginf[0] != 1 && max[0] - min[1] > max[1] - min[0]) {
 					tmp = max[1] - min[0];
-					tmpn[0] = -axisX;
-					tmpn[1] = -axisY;
+					tmpn[0] = -eX;
+					tmpn[1] = -eY;
 				}
 				else {
 					tmp = max[0] - min[1];
-					tmpn[0] = axisX;
-					tmpn[1] = axisY;
+					tmpn[0] = eX;
+					tmpn[1] = eY;
 				}
 				if (first || tmp != -1 && (*depth == -1 || tmp < *depth)) {
 					*depth = tmp;
@@ -147,7 +149,7 @@ void CollisionProcess()
 				for (t = 0; t < entities[j].othertypes->n && entities[i].type != entities[j].othertypes->types[t]; ++t);
 			if ((entities[i].othertypes == NULL || s == entities[i].othertypes->n) &&
 				(entities[j].othertypes == NULL || t == entities[j].othertypes->n)) continue;
-			if (isCollided(i, j, n, &depth)) {
+			if (isCollided(entities[i].func(entities[i].id), entities[j].func(entities[j].id), n, &depth)) {
 				if (entities[i].othertypes != NULL && s != entities[i].othertypes->n)
 					(*entities[i].notifier)(entities[i].id, entities[j].type, entities[j].id, n, depth);
 				if (entities[j].othertypes != NULL && t != entities[j].othertypes->n) {
@@ -157,5 +159,18 @@ void CollisionProcess()
 				}
 			}
 		}
+	}
+}
+void CollisionQuery(Points *points, Types *othertypes,
+	void(*notifier)(int othertype, int otherid, double n[2], double depth))
+{
+	int i, s;
+	double n[2], depth;
+	if (othertypes == NULL || notifier == NULL) return;
+	for (i = 0; i < entitiesEnd; ++i) {
+		for (s = 0; s < othertypes->n && entities[i].type != othertypes->types[s]; ++s);
+		if (s == othertypes->n) continue;
+		if (isCollided(points, entities[i].func(entities[i].id), n, &depth))
+			(*notifier)(entities[i].type, entities[i].id, n, depth);
 	}
 }

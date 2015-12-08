@@ -1,4 +1,6 @@
 #pragma once
+#define ID_PLAYER	1
+
 void PlayerInit();
 void PlayerDestroy();
 void PlayerStart();

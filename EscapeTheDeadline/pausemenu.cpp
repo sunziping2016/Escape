@@ -24,7 +24,7 @@
 #define FONTSIZE_MENU			96
 #define FONTSIZE_DESCRIPITION	48
 #define FONTSIZE_SELECTOR		64
-#define MARGIN					64
+#define MARGIN					32
 
 #define COLOR_TITLE				RGB(0xb2, 0x22, 0x22)
 #define COLOR_PAUSEMENUSELECTED	RGB(0xff, 0x00, 0xff)

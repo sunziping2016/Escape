@@ -6,8 +6,8 @@
 #include "player.h"
 #include "startmenu.h"
 #include "pausemenu.h"
-
-#include "test.h"
+#include "ground.h"
+#include "grid.h"
 
 int gameState;
 int gamePaused;
@@ -22,6 +22,8 @@ static void StartState(int newState)
 		break;
 	case STARTED:
 		WorldStart();
+		GridStart();
+		GroundStart();
 		PlayerStart();
 		PausemenuTriggerStart();
 		break;
@@ -42,6 +44,8 @@ static void StopState()
 			EngineResume();
 		PausemenuTriggerStop();
 		PlayerStop();
+		GroundStop();
+		GridStop();
 		WorldStop();
 		break;
 	default:
@@ -52,6 +56,7 @@ void EngineResume()
 {
 	PausemenuStop();
 	WorldResume();
+	GroundResume();
 	PlayerResume();
 	gamePaused = 0;
 }
@@ -59,6 +64,7 @@ void EnginePause()
 {
 	gamePaused = 1;
 	PlayerPause();
+	GroundPause();
 	WorldPause();
 	PausemenuStart();
 }
@@ -68,6 +74,8 @@ void EngineInit()
 	StartmenuInit();
 	PausemenuInit();
 	WorldInit();
+	GridInit();
+	GroundInit();
 	PlayerInit();
 	StartState(NOTSTARTED);
 	gamePaused = 0;
@@ -75,6 +83,8 @@ void EngineInit()
 void EngineDestroy()
 {
 	PlayerDestroy();
+	GroundDestroy();
+	GridDestroy();
 	WorldDestroy();
 	PausemenuDestroy();
 	StartmenuDestroy();
@@ -95,5 +105,6 @@ void EngineStop()
 
 void EngineProcess()
 {
+	if (gameState != STARTED || gamePaused) return;
 	CollisionProcess();
 }

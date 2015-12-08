@@ -22,3 +22,5 @@ int CollisionAdd(Points *(*func)(int id), int id,
 	void(*notifier)(int id, int othertype, int otherid, double n[2], double depth));
 void CollisionRemove(Points *(*func)(int id), int id);
 void CollisionProcess();
+void CollisionQuery(Points *points, Types *othertypes,
+	void(*notifier)(int othertype, int otherid, double n[2], double depth));

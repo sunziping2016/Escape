@@ -6,17 +6,9 @@
 #include "engine.h"
 #include "loader.h"
 
-static double viewX, viewY;
+double viewX, viewY;
 static double viewVX, viewVY;
-
-double gravity;
-
-static int GravityCreate(wchar_t *command)
-{
-	if (swscanf(command, L"%*s%lf", &gravity) == 1)
-		return 0;
-	return 1;
-}
+static double viewportX, viewportY;
 
 static void UpdateView(int id, int ms);
 static int WorldCreate(wchar_t *command)
@@ -28,7 +20,6 @@ static int WorldCreate(wchar_t *command)
 void WorldInit()
 {
 	LoaderAdd(L"world", WorldCreate);
-	LoaderAdd(L"gravity", GravityCreate);
 }
 void WorldDestroy() {}
 
@@ -41,7 +32,7 @@ void WorldSetTracked(void(*func)(int id, double *x, double *y), int id)
 	trackedID = id;
 }
 
-#define factor1 0.05
+#define factor1 0.12
 #define factor2 (2 * sqrt(factor1))
 
 static void UpdateView(int id, int ms)
@@ -63,33 +54,30 @@ static void UpdateView(int id, int ms)
 	TimerAdd(UpdateView, id, ms + 20);
 }
 
-void WorldMapper(double x, double y, int *newx, int *newy)
+int WorldX(double x)
 {
-	*newx = (int)(x - viewX + 0.5) + DrawerX / 2;
-	*newy = (int)(y - viewY + 0.5) + DrawerY / 2;
+	return ROUND(x + viewportX - viewX) + DrawerX / 2;
 }
-
-POINT WorldSetMapper(HDC hDC, double x, double y)
+int WorldY(double y)
 {
-	POINT point;
-	int newx, newy;
-	WorldMapper(x, y, &newx, &newy);
-	SetViewportOrgEx(hDC, newx, newy, &point);
-	return point;
+	return ROUND(y + viewportY - viewY) + DrawerY / 2;
 }
-void WorldResetMapper(HDC hDC, POINT *orign)
+void WorldSetViewport(double x, double y)
 {
-	SetViewportOrgEx(hDC, orign->x, orign->y, NULL);
+	viewportX = x;
+	viewportY = y;
 }
 void WorldStart()
 {
+	viewVX = viewVY = 0.0;
+	viewportX = viewportY = 0.0;
 	WorldResume();
 }
 void WorldStop()
 {
 	trackedFunc = NULL;
 	trackedID = 0;
-	gravity = 0.0;
+	viewX = viewY = 0.0;
 }
 void WorldResume()
 {

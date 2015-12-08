@@ -87,7 +87,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
@@ -148,8 +148,10 @@
   <ItemGroup>
     <ClCompile Include="collision.cpp" />
     <ClCompile Include="commonui.cpp" />
+    <ClCompile Include="deathmenu.cpp" />
     <ClCompile Include="drawer.cpp" />
     <ClCompile Include="engine.cpp" />
+    <ClCompile Include="grid.cpp" />
     <ClCompile Include="ground.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="loader.cpp" />
@@ -158,15 +160,16 @@
     <ClCompile Include="pausemenu.cpp" />
     <ClCompile Include="player.cpp" />
     <ClCompile Include="startmenu.cpp" />
-    <ClCompile Include="test.cpp" />
     <ClCompile Include="timer.cpp" />
     <ClCompile Include="world.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="collision.h" />
     <ClInclude Include="commonui.h" />
+    <ClInclude Include="deathmenu.h" />
     <ClInclude Include="drawer.h" />
     <ClInclude Include="engine.h" />
+    <ClInclude Include="grid.h" />
     <ClInclude Include="ground.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="loader.h" />
@@ -175,7 +178,6 @@
     <ClInclude Include="player.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="startmenu.h" />
-    <ClInclude Include="test.h" />
     <ClInclude Include="timer.h" />
     <ClInclude Include="world.h" />
   </ItemGroup>
@@ -184,6 +186,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="IDI_APP_ICON.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

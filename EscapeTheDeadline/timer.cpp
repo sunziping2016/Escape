@@ -66,11 +66,12 @@ static int msHash(int ms)
 int TimerProcess(HWND hWnd)
 {
 	int i, ms;
-	long time = GetTickCount();
+	//long time = GetTickCount();
 	//LogPrintf("%ld:	TimerProcess Start:\n", time);
 	if (timersBegin == timersEnd) return 1;
 	while(timersBegin != timersEnd) {
-		ms = msHash(timers[timersBegin].ms + (GetTickCount() - time));
+		//ms = msHash(timers[timersBegin].ms + (GetTickCount() - time));
+		ms = msHash(timers[timersBegin].ms);
 		if (ms > 0) break;
 		(*timers[timersBegin].func)(timers[timersBegin].id, timers[timersBegin].ms);
 		timersBegin = nextIter(timersBegin);

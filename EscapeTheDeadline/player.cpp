@@ -1,3 +1,4 @@
+#pragma warning(disable: 4996)
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -12,31 +13,45 @@
 
 #include "player.h"
 
-#define DOUBLEJUMP		0x01
-#define LARGER			0x02
-#define SMALLER			0x04
-#define FLY				0x08
-#define NODEATH			0x10
-#define LASER			0x20
-#define DEAD			0x40
+#define DOUBLEJUMP			0x01
+#define LARGER				0x02
+#define SMALLER				0x04
+#define FLY					0x08
+#define NODEATH				0x10
+#define LASER				0x20
+#define DEAD				0x40
 
-#define SIZE_PLAYER		20.0
+#define SIZE_PLAYER			20.0
 
-#define LEFTTOP			0
-#define CENTER			1
-#define RIGHTBOTTOM		2
-#define NUM_POINTS		3
+#define LEFTTOP				0
+#define CENTER				1
+#define RIGHTBOTTOM			2
+#define NUM_POINTS			3
 
-#define COLOR_NORMAL	0
-#define COLOR_NODEATH	1
-#define COLOR_LANDED	2
+#define COLOR_NORMAL		0
+#define COLOR_NODEATH		1
+#define COLOR_LANDED		2
+
+#define MARGIN_PLAYER		32
+#define DISTANCE_LIFE		16
+#define SIZEX_LIFE			64
+#define SIZEY_LIFE			8
+
+#define COLOR_SCORE			RGB(0x8a, 0x2b, 0xe2)
+#define COLOR_LOWLIFE		RGB(0xdc, 0x14, 0x3c)
+#define COLOR_MEDIUMLIFE	RGB(0xff, 0xd7, 0x00)
+#define COLOR_HIGHLIFE		RGB(0x7c, 0xff, 0x00)
+
+#define FONTSIZE_SCORE		32
+#define FONTNAME_SCORE		TEXT("Monotype Corsiva")
+
+static HFONT hFontScore;
 
 static COLORREF playerColors[] = {
 	RGB(0x56, 0x3d, 0x7c),			// Normal
 	RGB(0xff, 0xff, 0xff),			// Nodeath
 	RGB(0x8b, 0x00, 0x8b)			// Landed
 };
-
 #define NUM_COLORS		(sizeof(playerColors) / sizeof(playerColors[0]))
 
 static struct
@@ -44,7 +59,7 @@ static struct
 	// Position and Velocity
 	double pos[2], v[2];
 	// Body size
-	double size, sizev;
+	double size, aimedSize, sizeV;
 	// Color
 	int colorState[NUM_COLORS];
 	int colorAlways[NUM_COLORS]; // 0 Never on, 1 Always on
@@ -52,8 +67,9 @@ static struct
 	// Collision State
 	double collisionN[2];
 	int isOnCollision, isOnGround, isOnSqueeze[2];
-	// Score
-	int score;
+	// Score and life
+	int score, displayedScore;
+	double life, displayedLife, lifeV;
 	// State
 	int state;
 } player;
@@ -61,7 +77,6 @@ static int hasPlayer;
 
 #define STEP_COLOR	10
 #define GetColorStep(colorstate)	(STEP_COLOR - abs(player.colorState[i] % (2 * STEP_COLOR) - STEP_COLOR))
-
 static void PlayerColorOn(int color)
 {
 	player.colorAlways[COLOR_NORMAL] = 0;
@@ -149,6 +164,36 @@ static void PlayerDrawer(int id, HDC hDC)
 	DeleteObject(hBrush);
 	DeleteObject(hPen);
 }
+#define SCORE_BUFFERSIZE	20
+static void PlayerScorelifeDrawer(int id, HDC hDC)
+{
+	HPEN hPen;
+	HBRUSH hBrush;
+	COLORREF fill;
+	wchar_t buffer[SCORE_BUFFERSIZE];
+	int len;
+	SIZE size;
+	if (gameState != STARTED || hasPlayer == 0) return;
+	swprintf(buffer, L"Score: %06d", player.displayedScore);
+	len = (int)wcslen(buffer);
+	SetTextColor(hDC, COLOR_SCORE);
+	SelectObject(hDC, hFontScore);
+	GetTextExtentPoint(hDC, buffer, len, &size);
+	TextOut(hDC, DrawerX - MARGIN_PLAYER - size.cx, MARGIN_PLAYER, buffer, len);
+	if (1.0 - player.displayedLife / PLAYERLIFE_MAX < 0.01) return;
+	WorldSetViewport(player.pos[0] - SIZEX_LIFE / 2, player.pos[1] - player.size / 2 - DISTANCE_LIFE - SIZEY_LIFE);
+	fill = DrawerColor(COLOR_HIGHLIFE, COLOR_LOWLIFE, player.displayedLife / PLAYERLIFE_MAX);
+	hPen = CreatePen(PS_SOLID, 1, DrawerColor(fill, RGB(0x00, 0x00, 0x00), 0.6));
+	hBrush = CreateSolidBrush(groundColor);
+	SelectObject(hDC, hPen);
+	SelectObject(hDC, hBrush);
+	Rectangle(hDC, WorldX(0), WorldY(0), WorldX(SIZEX_LIFE), WorldY(SIZEY_LIFE));
+	DeleteObject(hBrush);
+	hBrush = CreateSolidBrush(fill);
+	SelectObject(hDC, hBrush);
+	Rectangle(hDC, WorldX(0), WorldY(0), WorldX(player.displayedLife / PLAYERLIFE_MAX * SIZEX_LIFE), WorldY(SIZEY_LIFE));
+	DeleteObject(hBrush);
+}
 #define factor1 0.1
 #define factor2 (2 * sqrt(factor1))
 
@@ -215,14 +260,19 @@ static void PlayerCollisionNotifier(int id, int othertype, int otherid, double n
 static void PlayerPosUpdate()
 {
 	double p[2], f[2];
-	player.sizev += factor1 * (SIZE_PLAYER - player.size) - factor2 * player.sizev;
-	player.size += player.sizev;
+	player.sizeV += factor1 * (player.aimedSize - player.size) - factor2 * player.sizeV;
+	player.size += player.sizeV;
 	if (player.isOnGround) {
 		if (KeyboardIsDown[VK_SPACE]) {
 			player.v[0] -= VELOCITY_JUMP * player.collisionN[0];
 			player.v[1] -= VELOCITY_JUMP * player.collisionN[1];
+			PlayerMinusLife(5);
 		}
 		player.v[0] += ACCERATION_CONTOL * (KeyboardIsDown[VK_RIGHT] - KeyboardIsDown[VK_LEFT]);
+		if (KeyboardIsDown['Q'])
+			PlayerMinusLife(2);
+		if (KeyboardIsDown['P'])
+			PlayerAddLife(100);
 		//player.v[1] += ACCERATION_CONTOL * (KeyboardIsDown[VK_DOWN] - KeyboardIsDown[VK_UP]);
 	}
 	if (player.isOnGround) {
@@ -253,12 +303,27 @@ static void PlayerPosUpdate()
 	maxDelta[0] = maxDelta[1] = 0.0;
 	deltaNEnd = 0;
 }
-
+static void PlayerScoreUpdate()
+{
+	if (player.displayedScore < player.score)
+		++player.displayedScore;
+	else if (player.displayedScore > player.score)
+		--player.displayedScore;
+}
+static void PlayerLifeUpdate()
+{
+	player.lifeV += factor1 * (player.life - player.displayedLife) - factor2 * player.lifeV;
+	player.displayedLife += player.lifeV;
+	if(player.displayedLife < 0.01 * PLAYERLIFE_MAX)
+		PlayerDie();
+}
 static void PlayerTimer(int id, int ms)
 {
 	if (gameState != STARTED || gamePaused) return;
 	PlayerColorUpdate();
 	PlayerPosUpdate();
+	PlayerScoreUpdate();
+	PlayerLifeUpdate();
 	TimerAdd(PlayerTimer, id, 20);
 }
 static int PlayerCreate(wchar_t *command)
@@ -275,18 +340,28 @@ static void PlayerTracked(int id, double *x, double *y)
 }
 void PlayerInit()
 {
+	hFontScore = CreateFont(FONTSIZE_SCORE, 0, 0, 0, 0, FALSE, FALSE, FALSE,
+		ANSI_CHARSET, 0, 0, 0, FIXED_PITCH, FONTNAME_SCORE);
 	DrawerAdd(PlayerDrawer, 0, 5);
+	DrawerAdd(PlayerScorelifeDrawer, 0, 1);
 	LoaderAdd(L"player", PlayerCreate);
 }
-void PlayerDestroy() {}
+void PlayerDestroy()
+{
+	DeleteObject(hFontScore);
+}
 void PlayerStart()
 {
 	int i;
 	player.v[0] = player.v[1] = 0.0;
-	player.sizev = 0.0;
 	player.size = 2.0;
+	player.aimedSize = SIZE_PLAYER;
+	player.sizeV = 0.0;
 	player.collisionN[0] = player.collisionN[1] = 0.0;
 	player.isOnCollision = player.isOnGround = player.isOnSqueeze[0] = player.isOnSqueeze[0] = 0;
+	player.score = player.displayedScore = 0;
+	player.life = player.displayedLife = PLAYERLIFE_MAX;
+	player.lifeV = 0.0;
 	player.state = 0;
 	for (i = 0; i < NUM_COLORS; ++i) {
 		if (i == COLOR_NORMAL) {
@@ -315,4 +390,24 @@ void PlayerPause() {}
 void PlayerResume()
 {
 	TimerAdd(PlayerTimer, 0, 20);
+}
+void PlayerAddScore(int num)
+{
+	player.score += num;
+}
+void PlayerDie()
+{
+	EngineStart(DIED);
+}
+void PlayerAddLife(int num)
+{
+	player.life += num;
+	if (player.life > PLAYERLIFE_MAX)
+		player.life = PLAYERLIFE_MAX;
+}
+void PlayerMinusLife(int num)
+{
+	player.life -= num;
+	if (player.life <= 0)
+		player.life = 0;
 }

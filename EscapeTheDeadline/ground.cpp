@@ -13,6 +13,9 @@
 
 double groundFriction;
 double groundGravity;
+COLORREF groundColor;
+
+static HBRUSH hBrushBackground;
 
 static struct
 {
@@ -42,6 +45,13 @@ static int FrictionCreate(wchar_t *command)
 static int GravityCreate(wchar_t *command)
 {
 	if (swscanf(command, L"%*s%lf", &groundGravity) == 1)
+		return 0;
+	return 1;
+}
+static int BackgroundCreate(wchar_t *command)
+{
+	if (swscanf(command, L"%*s%lx", &groundColor) == 1)
+		groundColor = DrawerRGB(groundColor);
 		return 0;
 	return 1;
 }
@@ -81,11 +91,22 @@ static Points *BorderCollision(int id)
 	points.n = 2;
 	return &points;
 }
+static void BackgroundDrawer(int id, HDC hDC)
+{
+	RECT rect;
+	if (gameState != STARTED) return;
+	rect.left = 0;			rect.top = 0;
+	rect.right = DrawerX;	rect.bottom = DrawerY;
+	FillRect(hDC, &rect, hBrushBackground);
+}
 void GroundInit()
 {
+	groundColor = RGB(0xff, 0xff, 0xff);
+	DrawerAdd(BackgroundDrawer, 0, 11);
 	LoaderAdd(L"border", BorderCreate);
 	LoaderAdd(L"gravity", GravityCreate);
 	LoaderAdd(L"friction", FrictionCreate);
+	LoaderAdd(L"background", BackgroundCreate);
 }
 void GroundDestroy() {}
 void GroundStart()
@@ -96,10 +117,12 @@ void GroundStart()
 			DrawerAdd(BorderDrawer, i, 0);
 		CollisionAdd(BorderCollision, i, ID_BORDER, NULL, NULL);
 	}
+	hBrushBackground = CreateSolidBrush(groundColor);
 }
 void GroundStop()
 {
 	int i;
+	DeleteObject(hBrushBackground);
 	for (i = 0; i < bordersEnd; ++i) {
 		if (borders[i].visible)
 			DrawerRemove(BorderDrawer, i);
@@ -108,6 +131,7 @@ void GroundStop()
 	bordersEnd = 0;
 	groundFriction = 0.0;
 	groundGravity = 0.0;
+	groundColor = RGB(0xff, 0xff, 0xff);
 }
 void GroundPause() {}
 void GroundResume() {}

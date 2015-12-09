@@ -10,8 +10,6 @@
 #include "log.h"
 
 #define MAX_STRLEN		100
-#define MIN_WINHEIGHT	640
-#define MIN_WINWIDTH	960
 
 static TCHAR szWindowClass[MAX_STRLEN];
 static TCHAR szTitle[MAX_STRLEN];

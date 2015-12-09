@@ -9,7 +9,7 @@
 #include "world.h"
 
 #define COLOR_GRID		RGB(0xe0, 0xe0, 0xe0)
-#define COLOR_TEXT		RGB(0xcc, 0xcc, 0xcc)
+#define COLOR_TEXT		RGB(0xa9, 0xa9, 0xa9)
 #define WIDTH_GRID		2
 #define FONTPADDING		8
 #define FONTSIZE_GRID	20

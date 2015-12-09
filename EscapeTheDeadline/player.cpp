@@ -45,6 +45,7 @@
 #define FONTSIZE_SCORE		32
 #define FONTNAME_SCORE		TEXT("Monotype Corsiva")
 
+int playerIsDied;
 static HFONT hFontScore;
 
 static COLORREF playerColors[] = {
@@ -266,15 +267,14 @@ static void PlayerPosUpdate()
 		if (KeyboardIsDown[VK_SPACE]) {
 			player.v[0] -= VELOCITY_JUMP * player.collisionN[0];
 			player.v[1] -= VELOCITY_JUMP * player.collisionN[1];
-			PlayerMinusLife(5);
 		}
 		player.v[0] += ACCERATION_CONTOL * (KeyboardIsDown[VK_RIGHT] - KeyboardIsDown[VK_LEFT]);
-		if (KeyboardIsDown['Q'])
-			PlayerMinusLife(2);
-		if (KeyboardIsDown['P'])
-			PlayerAddLife(100);
 		//player.v[1] += ACCERATION_CONTOL * (KeyboardIsDown[VK_DOWN] - KeyboardIsDown[VK_UP]);
 	}
+	if (KeyboardIsDown['Q'])
+		PlayerMinusLife(2);
+	if (KeyboardIsDown['P'])
+		PlayerAddLife(100);
 	if (player.isOnGround) {
 		p[0] = -player.collisionN[1];  p[1] = player.collisionN[0];
 		player.v[0] += groundGravity * p[1] * p[0];
@@ -353,6 +353,7 @@ void PlayerDestroy()
 void PlayerStart()
 {
 	int i;
+	playerIsDied = 0;
 	player.v[0] = player.v[1] = 0.0;
 	player.size = 2.0;
 	player.aimedSize = SIZE_PLAYER;
@@ -395,8 +396,13 @@ void PlayerAddScore(int num)
 {
 	player.score += num;
 }
+int PlayerGetScore()
+{
+	return player.score;
+}
 void PlayerDie()
 {
+	playerIsDied = 1;
 	EngineStart(DIED);
 }
 void PlayerAddLife(int num)

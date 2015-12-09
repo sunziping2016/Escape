@@ -2,6 +2,8 @@
 #define ID_PLAYER		1
 #define PLAYERLIFE_MAX	100.0
 
+extern int playerIsDied;
+
 void PlayerInit();
 void PlayerDestroy();
 void PlayerStart();
@@ -10,6 +12,7 @@ void PlayerPause();
 void PlayerResume();
 
 void PlayerAddScore(int num);
+int PlayerGetScore();
 void PlayerDie();
 void PlayerAddLife(int num);
 void PlayerMinusLife(int num);

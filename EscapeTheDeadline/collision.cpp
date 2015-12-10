@@ -84,16 +84,27 @@ static int isCollided(Points *a, Points *b, double n[2], double *depth)
 					points[t]->points[0][1] == points[t]->points[points[t]->n - 1][1]) continue;
 				dx = points[t]->points[1][0] - points[t]->points[0][0];
 				dy = points[t]->points[1][1] - points[t]->points[0][1];
-				if (dx * axisX + dy *axisY > 0.0 || dx * axisX + dy * axisY == 0.0 && -dx * axisY + dy * axisX > 0.0)
-					neginf[t] = 1;
-				else
-					posinf[t] = 1;
-				dx = points[t]->points[points[t]->n - 1][0] - points[t]->points[0][0];
-				dy = points[t]->points[points[t]->n - 1][1] - points[t]->points[0][1];
-				if (dx * axisX + dy *axisY < 0.0 || dx * axisX + dy * axisY == 0.0 && -dx * axisY + dy * axisX > 0.0)
-					neginf[t] = 1;
-				else
-					posinf[t] = 1;
+				if (dx * axisX + dy * axisY != 0.0) {
+					if (dx * axisX + dy *axisY > 0.0)
+						neginf[t] = 1;
+					else
+						posinf[t] = 1;
+				}
+				else if (points[t]->n == 2) {
+					if(-dx * axisY + dy * axisX > 0.0)
+						neginf[t] = 1;
+					else
+						posinf[t] = 1;
+					continue;
+				}
+				dx = points[t]->points[points[t]->n - 1][0] - points[t]->points[points[t]->n - 2][0];
+				dy = points[t]->points[points[t]->n - 1][1] - points[t]->points[points[t]->n - 2][1];
+				if (dx * axisX + dy * axisY != 0.0) {
+					if (dx * axisX + dy *axisY < 0.0)
+						neginf[t] = 1;
+					else
+						posinf[t] = 1;
+				}
 			}
 			for (t = 0; t < 2; ++t) {
 				min[t] = max[t] = points[t]->points[0][0] * eX + points[t]->points[0][1] * eY;

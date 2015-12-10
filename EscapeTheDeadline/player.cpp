@@ -10,7 +10,7 @@
 #include "loader.h"
 #include "collision.h"
 #include "ground.h"
-
+#include "commonui.h"
 #include "player.h"
 
 #define DOUBLEJUMP			0x01
@@ -39,19 +39,21 @@
 
 #define COLOR_SCORE			RGB(0x8a, 0x2b, 0xe2)
 #define COLOR_LOWLIFE		RGB(0xdc, 0x14, 0x3c)
-#define COLOR_MEDIUMLIFE	RGB(0xff, 0xd7, 0x00)
 #define COLOR_HIGHLIFE		RGB(0x7c, 0xff, 0x00)
 
 #define FONTSIZE_SCORE		32
 #define FONTNAME_SCORE		TEXT("Monotype Corsiva")
+
+#define VIEWPORT_DELTAX		(DrawerX / 6)
+
+#define COOLTIME_INJURED	1500
 
 int playerIsDied;
 static HFONT hFontScore;
 
 static COLORREF playerColors[] = {
 	RGB(0x56, 0x3d, 0x7c),			// Normal
-	RGB(0xff, 0xff, 0xff),			// Nodeath
-	RGB(0x8b, 0x00, 0x8b)			// Landed
+	RGB(0xff, 0xff, 0xff)			// Nodeath
 };
 #define NUM_COLORS		(sizeof(playerColors) / sizeof(playerColors[0]))
 
@@ -73,8 +75,11 @@ static struct
 	double life, displayedLife, lifeV;
 	// State
 	int state;
+	// Managed by others
+	double friction, jumpSpeed, jumpP[2];
+	int controllable;
 } player;
-static int hasPlayer;
+static int hasPlayer, hasPlayerTimer;
 
 #define STEP_COLOR	10
 #define GetColorStep(colorstate)	(STEP_COLOR - abs(player.colorState[i] % (2 * STEP_COLOR) - STEP_COLOR))
@@ -99,12 +104,12 @@ static void PlayerColorBlink(int color, int time)
 }
 static void PlayerColorStartBlink(int color)
 {
-	player.colorAlways[color] = 0;
+	PlayerColorOff(color);
 	player.colorBlink[color] = -1;
 }
 static void PlayerColorStopBlink(int color)
 {
-	player.colorAlways[color] = 0;
+	PlayerColorOff(color);
 	player.colorBlink[color] = 0;
 }
 static void PlayerColorUpdate()
@@ -129,7 +134,6 @@ static void PlayerColorUpdate()
 				PlayerColorOn(i);
 		}
 	}
-
 }
 static COLORREF PlayerColorFill()
 {
@@ -185,7 +189,7 @@ static void PlayerScorelifeDrawer(int id, HDC hDC)
 	WorldSetViewport(player.pos[0] - SIZEX_LIFE / 2, player.pos[1] - player.size / 2 - DISTANCE_LIFE - SIZEY_LIFE);
 	fill = DrawerColor(COLOR_HIGHLIFE, COLOR_LOWLIFE, player.displayedLife / PLAYERLIFE_MAX);
 	hPen = CreatePen(PS_SOLID, 1, DrawerColor(fill, RGB(0x00, 0x00, 0x00), 0.6));
-	hBrush = CreateSolidBrush(groundColor);
+	hBrush = CreateSolidBrush(backgroundColor);
 	SelectObject(hDC, hPen);
 	SelectObject(hDC, hBrush);
 	Rectangle(hDC, WorldX(0), WorldY(0), WorldX(SIZEX_LIFE), WorldY(SIZEY_LIFE));
@@ -194,13 +198,14 @@ static void PlayerScorelifeDrawer(int id, HDC hDC)
 	SelectObject(hDC, hBrush);
 	Rectangle(hDC, WorldX(0), WorldY(0), WorldX(player.displayedLife / PLAYERLIFE_MAX * SIZEX_LIFE), WorldY(SIZEY_LIFE));
 	DeleteObject(hBrush);
+	DeleteObject(hPen);
 }
 #define factor1 0.1
 #define factor2 (2 * sqrt(factor1))
 
 #define DELTAN_LEN		10
 
-static Types types = { { ID_BORDER }, 1 };
+static Types types = { { ID_BORDER, ID_GROUND }, 2 };
 static double orignPos[2], maxDelta[2];
 static double deltaN[DELTAN_LEN][3];
 static int deltaNEnd;
@@ -225,7 +230,7 @@ static void PlayerCollisionNotifier(int id, int othertype, int otherid, double n
 	v[0] = newv * p[0];
 	v[1] = newv * p[1];
 	player.isOnCollision = 1;
-	if (othertype == ID_BORDER)
+	if (othertype == ID_GROUND)
 		player.isOnGround = 1;
 	if (deltaNEnd != DELTAN_LEN) {
 		deltaN[deltaNEnd][0] = n[0];
@@ -249,8 +254,10 @@ static void PlayerCollisionNotifier(int id, int othertype, int otherid, double n
 					player.collisionN[i] = sum / deltaNEnd;
 				}
 			}
-			else
+			else {
 				player.isOnSqueeze[i] = 1;
+				ErrorPrintf(L"PlayerEorror: Squeezed.");
+			}
 		}
 	}
 }
@@ -271,10 +278,6 @@ static void PlayerPosUpdate()
 		player.v[0] += ACCERATION_CONTOL * (KeyboardIsDown[VK_RIGHT] - KeyboardIsDown[VK_LEFT]);
 		//player.v[1] += ACCERATION_CONTOL * (KeyboardIsDown[VK_DOWN] - KeyboardIsDown[VK_UP]);
 	}
-	if (KeyboardIsDown['Q'])
-		PlayerMinusLife(2);
-	if (KeyboardIsDown['P'])
-		PlayerAddLife(100);
 	if (player.isOnGround) {
 		p[0] = -player.collisionN[1];  p[1] = player.collisionN[0];
 		player.v[0] += groundGravity * p[1] * p[0];
@@ -319,7 +322,10 @@ static void PlayerLifeUpdate()
 }
 static void PlayerTimer(int id, int ms)
 {
-	if (gameState != STARTED || gamePaused) return;
+	if (gameState != STARTED || gamePaused) {
+		hasPlayerTimer = 0;
+		return;
+	}
 	PlayerColorUpdate();
 	PlayerPosUpdate();
 	PlayerScoreUpdate();
@@ -336,7 +342,22 @@ static int PlayerCreate(wchar_t *command)
 }
 static void PlayerTracked(int id, double *x, double *y)
 {
-	*x = player.pos[0];	*y = player.pos[1];
+	*x = player.pos[0];
+	*y = player.pos[1];
+}
+static int nodeathTimerID;
+static void PlayerNodeathTimer(int id, int ms)
+{
+	if (id != nodeathTimerID) return;
+	player.state &= ~NODEATH;
+	PlayerColorStopBlink(COLOR_NODEATH);
+}
+static void PlayerNodeathTimerStart(int ms)
+{
+	++nodeathTimerID;
+	player.state |= NODEATH;
+	PlayerColorStartBlink(COLOR_NODEATH);
+	TimerAdd(PlayerNodeathTimer, nodeathTimerID, ms);
 }
 void PlayerInit()
 {
@@ -376,7 +397,7 @@ void PlayerStart()
 			player.colorBlink[i] = 0;
 		}
 	};
-	PlayerColorBlink(COLOR_NODEATH, 3);
+	PlayerNodeathTimerStart(COOLTIME_INJURED);
 	WorldSetTracked(PlayerTracked, 0);
 	CollisionAdd(PlayerCollision, 0, ID_PLAYER, &types, PlayerCollisionNotifier);
 	PlayerResume();
@@ -390,7 +411,10 @@ void PlayerStop()
 void PlayerPause() {}
 void PlayerResume()
 {
-	TimerAdd(PlayerTimer, 0, 20);
+	if (!hasPlayerTimer) {
+		TimerAdd(PlayerTimer, 0, 20);
+		hasPlayerTimer = 1;
+	}
 }
 void PlayerAddScore(int num)
 {
@@ -405,15 +429,17 @@ void PlayerDie()
 	playerIsDied = 1;
 	EngineStart(DIED);
 }
-void PlayerAddLife(int num)
+void PlayerAddLife(double num)
 {
 	player.life += num;
 	if (player.life > PLAYERLIFE_MAX)
 		player.life = PLAYERLIFE_MAX;
 }
-void PlayerMinusLife(int num)
+void PlayerMinusLife(double num)
 {
+	if (player.state & NODEATH) return;
 	player.life -= num;
 	if (player.life <= 0)
 		player.life = 0;
+	PlayerNodeathTimerStart(COOLTIME_INJURED);
 }

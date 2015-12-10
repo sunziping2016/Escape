@@ -14,5 +14,5 @@ void PlayerResume();
 void PlayerAddScore(int num);
 int PlayerGetScore();
 void PlayerDie();
-void PlayerAddLife(int num);
-void PlayerMinusLife(int num);
+void PlayerAddLife(double num);
+void PlayerMinusLife(double num);

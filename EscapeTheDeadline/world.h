@@ -8,6 +8,7 @@
 #define ROUND(pos)		((int)lround(pos))
 
 extern double viewX, viewY;
+extern double viewRect[4];
 
 void WorldInit();
 void WorldDestroy();

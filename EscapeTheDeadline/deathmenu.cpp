@@ -23,7 +23,7 @@
 
 
 #define FONTSIZE_TITLE			108
-#define FONTSIZE_SCORE			96
+#define FONTSIZE_SCORE			80
 #define FONTSIZE_DESCRIPITION	48
 
 #define FONTNAME_TITLE			TEXT("GothicE")

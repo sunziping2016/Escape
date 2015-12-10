@@ -7,6 +7,7 @@
 #include "loader.h"
 
 double viewX, viewY;
+double viewRect[4];
 static double viewVX, viewVY;
 static double viewportX, viewportY;
 
@@ -32,13 +33,18 @@ void WorldSetTracked(void(*func)(int id, double *x, double *y), int id)
 	trackedID = id;
 }
 
-#define factor1 0.12
+#define factor1 0.06
 #define factor2 (2 * sqrt(factor1))
+
+static int hasWorldTimer;
 
 static void UpdateView(int id, int ms)
 {
 	double trackedX, trackedY, ax, ay;
-	if (gameState != STARTED || gamePaused) return;
+	if (gameState != STARTED || gamePaused) {
+		hasWorldTimer = 0;
+		return;
+	}
 	if (trackedFunc == NULL) {
 		trackedX = DrawerX / 2;
 		trackedY = DrawerY / 2;
@@ -51,6 +57,8 @@ static void UpdateView(int id, int ms)
 	viewVY += ay;
 	viewX += viewVX;
 	viewY += viewVY;
+	viewRect[0] = viewX - DrawerX / 2.0;		viewRect[1] = viewY - DrawerY / 2.0;
+	viewRect[2] = viewX + DrawerX / 2.0;		viewRect[3] = viewY + DrawerY / 2.0;
 	TimerAdd(UpdateView, id, ms + 20);
 }
 
@@ -71,6 +79,8 @@ void WorldStart()
 {
 	viewVX = viewVY = 0.0;
 	viewportX = viewportY = 0.0;
+	viewRect[0] = viewX - DrawerX / 2.0;		viewRect[1] = viewY - DrawerY / 2.0;
+	viewRect[2] = viewX + DrawerX / 2.0;		viewRect[3] = viewY + DrawerY / 2.0;
 	WorldResume();
 }
 void WorldStop()
@@ -81,6 +91,9 @@ void WorldStop()
 }
 void WorldResume()
 {
-	TimerAdd(UpdateView, 0, 20);
+	if (!hasWorldTimer) {
+		TimerAdd(UpdateView, 0, 20);
+		hasWorldTimer = 1;
+	}
 }
 void WorldPause() {}

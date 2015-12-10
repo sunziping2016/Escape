@@ -3,8 +3,8 @@
 #include <wchar.h>
 #include <string.h>
 #include "loader.h"
-
 #include "player.h"
+#include "commonui.h"
 
 #define BUFFERSIZE		200
 
@@ -24,25 +24,22 @@ int LoaderLoad(TCHAR *filename)
 	wchar_t buffer[BUFFERSIZE], command[BUFFERSIZE];
 	FILE *file;
 	_wfopen_s(&file, filename, L"r");
-	int error = 0, i, ret;
+	int error = 0, i, ret, line = 0;
 	while (fgetws(buffer, BUFFERSIZE, file) != NULL) {
-		if (buffer[0] == '\n' || buffer[0] == '#') continue;
-		if (swscanf(buffer, L"%s", command) != 1) {
-			error = 1;
-			break;
-		}
+		++line;
+		if (buffer[0] == '#') continue;
+		if (swscanf(buffer, L"%s", command) != 1) continue;
 		for (i = 0; i < commandsEnd; ++i)
 			if (wcscmp(Commands[i].commandName, command) == 0) {
 				ret = Commands[i].commandFunc(buffer);
 				break;
 			}
 		if (ret != 0 || i == commandsEnd) {
+			ErrorPrintf(L"LoaderError: Cannot parse command \"%s\" at Line %d in \"%s\". ", command, line + 1, filename);
 			error = 1;
-			break;
 		}
 	}
-	if (error == 0)
-		wcscpy(lastFile, filename);
+	wcscpy(lastFile, filename);
 	fclose(file);
 	return error;
 }

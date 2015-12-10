@@ -36,7 +36,7 @@
 
 #define MAXDARKING				10
 
-#define GAMEFILE_DIR			TEXT("games//")
+#define GAMEFILE_DIR			TEXT("games\\")
 #define GAMEFILE_EXTENSION		TEXT(".txt")
 
 static TCHAR gamefiles[GAMEFILE_MAXLEN][MAX_PATH];

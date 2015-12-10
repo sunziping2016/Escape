@@ -23,11 +23,6 @@ void TimerInit()
 }
 void TimerDestroy() {}
 
-void TimerClear()
-{
-	timersBegin = timersEnd = 0;
-}
-
 static void copyTimer(int to, int from)
 {
 	timers[to].func = timers[from].func;

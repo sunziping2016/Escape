@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "ground.h"
 #include "drawer.h"
 #include "loader.h"
@@ -7,9 +9,9 @@
 #include "world.h"
 #include "timer.h"
 #include "player.h"
+#include "commonui.h"
 
 #define MAX_BORDERLEN	10
-#define MAX_GROUNDLEN	1000
 
 #define WIDTH_BORDER	6.0
 #define GROUND_WIDTH	10.0
@@ -55,9 +57,12 @@ static int GravityCreate(wchar_t *command)
 }
 static int BackgroundCreate(wchar_t *command)
 {
-	if (swscanf(command, L"%*s%lx", &backgroundColor) == 1)
+	if (swscanf(command, L"%*s%lx", &backgroundColor) == 1) {
+		DeleteObject(hBrushBackground);
 		backgroundColor = DrawerRGB(backgroundColor);
+		hBrushBackground = CreateSolidBrush(backgroundColor);
 		return 0;
+	}
 	return 1;
 }
 
@@ -69,16 +74,18 @@ static void BorderDrawer(int id, HDC hDC)
 	MoveToEx(hDC, WorldX(borders[id].fromX), WorldY(borders[id].fromY), NULL);
 	LineTo(hDC, WorldX(borders[id].toX), WorldY(borders[id].toY));
 }
-static Points *BorderCollision(int id)
+static CollisionState *BorderCollision(int id, int othertype, int otherid)
 {
-	static Points points;
+	static CollisionState points;
 	points.points[0][0] = borders[id].fromX;	points.points[0][1] = borders[id].fromY;
 	points.points[1][0] = borders[id].toX;		points.points[1][1] = borders[id].toY;
+	points.velocity[0] = 0.0;					points.velocity[1] = 0.0;
 	points.n = 2;
+	points.usev = 0;
 	return &points;
 }
-static Types borderCollisionTypes = { { ID_PLAYER }, 1 };
-static void BorderCollisionNotifier(int id, int othertype, int otherid, double n[2], double depth)
+static CollisionType borderCollisionTypes = { { ID_PLAYER }, 1 };
+static void BorderCollisionNotifier(int id, int othertype, int otherid, double n[2], double depth, int usev)
 {
 	if (othertype == ID_PLAYER)
 		PlayerDie();
@@ -109,15 +116,11 @@ static COLORREF groundColor[] = {
 	RGB(0x70, 0x80, 0x90),		// No move
 	RGB(0x00, 0xbf, 0xff)		// No control
 };
+GroundType grounds[MAX_GROUNDLEN];
+int groundsEnd;
+int groundsMostId[2];
+int groundsLowestID;
 
-static struct {
-	double fromX, fromY;
-	double toX, toY;
-	double color;
-	int traits;
-	int invisible;
-} grounds[MAX_GROUNDLEN];
-static int groundsEnd;
 
 static void AngularBisector(double vx1, double vy1, double vx2, double vy2, double *vx, double *vy)
 {
@@ -140,10 +143,10 @@ static void AngularBisector(double vx1, double vy1, double vx2, double vy2, doub
 
 static void GroundDrawer(int id, HDC hDC)
 {
-	double leftN[2], rightN[2], groundN[2], len;
+	double leftN[2], rightN[2], groundN[2], len, leftEx[2], rightEx[2], lenLeft, lenRight;
 	POINT points[4];
 	COLORREF color;
-	int drawLeft = 0, drawRight = 0;
+	int drawLeft = 0, drawRight = 0, leftId, rightId;
 	HBRUSH hBrush;
 	HPEN hPen;
 	if (gameState != STARTED) return;
@@ -155,12 +158,28 @@ static void GroundDrawer(int id, HDC hDC)
 	SelectObject(hDC, hBrush);
 	groundN[0] = grounds[id].fromY - grounds[id].toY;
 	groundN[1] = grounds[id].toX - grounds[id].fromX;
-	if (id != 0 && !grounds[id - 1].invisible && grounds[id - 1].toX == grounds[id].fromX && grounds[id - 1].toY == grounds[id].fromY) {
-		AngularBisector(grounds[id - 1].fromX - grounds[id - 1].toX, grounds[id - 1].fromY - grounds[id - 1].toY,
+	leftId = grounds[id].leftId;
+	if (leftId != -1 && !grounds[leftId].invisible && grounds[leftId].toY == grounds[id].fromY) {
+		AngularBisector(grounds[leftId].fromX - grounds[leftId].toX, grounds[leftId].fromY - grounds[leftId].toY,
 			grounds[id].toX - grounds[id].fromX, grounds[id].toY - grounds[id].fromY, &leftN[0], &leftN[1]);
+	}
+	else if (leftId != -1 && !grounds[leftId].invisible) {
+		if (grounds[leftId].toY > grounds[id].fromY) {
+			AngularBisector(0.0, 1.0, grounds[id].toX - grounds[id].fromX, grounds[id].toY - grounds[id].fromY, &leftN[0], &leftN[1]);
+			AngularBisector(grounds[leftId].fromX - grounds[leftId].toX, grounds[leftId].fromY - grounds[leftId].toY, 0.0, -1.0, &leftEx[0], &leftEx[1]);
+			leftEx[1] *= GROUND_WIDTH / leftEx[0];
+			leftEx[0] *= GROUND_WIDTH / leftEx[0];
+			lenLeft = grounds[leftId].toY - grounds[id].fromY;
+			drawLeft = 1;
+		}
+		else
+			AngularBisector(0.0, -1.0, grounds[id].toX - grounds[id].fromX, grounds[id].toY - grounds[id].fromY, &leftN[0], &leftN[1]);
 	}
 	else {
 		AngularBisector(0.0, 1.0, grounds[id].toX - grounds[id].fromX, grounds[id].toY - grounds[id].fromY, &leftN[0], &leftN[1]);
+		leftEx[0] = GROUND_WIDTH;
+		leftEx[1] = 0.0;
+		lenLeft = viewRect[3] - grounds[id].fromY;
 		drawLeft = 1;
 	}
 	len = (groundN[0] * leftN[0] + groundN[1] * leftN[1]) / sqrt(groundN[0] * groundN[0] + groundN[1] * groundN[1]);
@@ -170,20 +189,36 @@ static void GroundDrawer(int id, HDC hDC)
 		WorldSetViewport(grounds[id].fromX, grounds[id].fromY);
 		points[0].x = WorldX(0);			points[0].y = WorldY(0);
 		points[1].x = WorldX(leftN[0]);		points[1].y = WorldY(leftN[1]);
-		points[2].x = WorldX(GROUND_WIDTH);	points[2].y = DrawerY;
-		points[3].x = WorldX(0);			points[3].y = DrawerY;
+		points[2].x = WorldX(leftEx[0]);	points[2].y = WorldY(lenLeft + leftEx[1]);
+		points[3].x = WorldX(0);			points[3].y = WorldY(lenLeft);
 		SelectObject(hDC, hPenNoOutline);
 		Polygon(hDC, points, 4);
 		SelectObject(hDC, hPen);
 		MoveToEx(hDC, points[0].x, points[0].y, NULL);
 		LineTo(hDC, points[3].x, points[3].y);
 	}
-	if (id != groundsEnd - 1 && !grounds[id + 1].invisible && grounds[id + 1].fromX == grounds[id].toX && grounds[id + 1].fromY == grounds[id].toY) {
+	rightId = grounds[id].rightId;
+	if (rightId != -1 && !grounds[rightId].invisible && grounds[rightId].fromY == grounds[id].toY) {
 		AngularBisector(grounds[id].fromX - grounds[id].toX, grounds[id].fromY - grounds[id].toY,
-			grounds[id + 1].toX - grounds[id + 1].fromX, grounds[id + 1].toY - grounds[id + 1].fromY, &rightN[0], &rightN[1]);
+			grounds[rightId].toX - grounds[rightId].fromX, grounds[rightId].toY - grounds[rightId].fromY, &rightN[0], &rightN[1]);
+	}
+	else if (rightId != -1 && !grounds[rightId].invisible) {
+		if (grounds[rightId].fromY > grounds[id].toY) {
+			AngularBisector(grounds[id].fromX - grounds[id].toX, grounds[id].fromY - grounds[id].toY, 0.0, 1.0, &rightN[0], &rightN[1]);
+			AngularBisector(0.0, -1.0, grounds[rightId].toX - grounds[rightId].fromX, grounds[rightId].toY - grounds[rightId].fromY, &rightEx[0], &rightEx[1]);
+			rightEx[1] *= -GROUND_WIDTH / rightEx[0];
+			rightEx[0] *= -GROUND_WIDTH / rightEx[0];
+			lenRight = grounds[rightId].fromY - grounds[id].toY;
+			drawRight = 1;
+		}
+		else
+			AngularBisector(grounds[id].fromX - grounds[id].toX, grounds[id].fromY - grounds[id].toY, 0.0, -1.0, &rightN[0], &rightN[1]);
 	}
 	else {
 		AngularBisector(grounds[id].fromX - grounds[id].toX, grounds[id].fromY - grounds[id].toY, 0.0, 1.0, &rightN[0], &rightN[1]);
+		rightEx[0] = -GROUND_WIDTH;
+		rightEx[1] = 0.0;
+		lenRight = viewRect[3] - grounds[id].toY;
 		drawRight = 1;
 	}
 	len = (groundN[0] * rightN[0] + groundN[1] * rightN[1]) / sqrt(groundN[0] * groundN[0] + groundN[1] * groundN[1]);
@@ -193,8 +228,8 @@ static void GroundDrawer(int id, HDC hDC)
 		WorldSetViewport(grounds[id].toX, grounds[id].toY);
 		points[0].x = WorldX(0);				points[0].y = WorldY(0);
 		points[1].x = WorldX(rightN[0]);		points[1].y = WorldY(rightN[1]);
-		points[2].x = WorldX(-GROUND_WIDTH);	points[2].y = DrawerY;
-		points[3].x = WorldX(0);				points[3].y = DrawerY;
+		points[2].x = WorldX(rightEx[0]);		points[2].y = WorldY(lenRight + rightEx[1]);
+		points[3].x = WorldX(0);				points[3].y = WorldY(lenRight);
 		SelectObject(hDC, hPenNoOutline);
 		Polygon(hDC, points, 4);
 		SelectObject(hDC, hPen);
@@ -214,74 +249,201 @@ static void GroundDrawer(int id, HDC hDC)
 	DeleteObject(hBrush);
 	DeleteObject(hPen);
 }
-static Points *GroundCollision(int id)
+static CollisionState *GroundCollision(int id, int othertype, int otherid)
 {
-	static Points points;
-	points.points[0][0] = grounds[id].fromX;	points.points[0][1] = grounds[id].fromY + 0.5;
-	points.points[1][0] = grounds[id].fromX;	points.points[1][1] = grounds[id].fromY;
-	points.points[2][0] = grounds[id].toX;		points.points[2][1] = grounds[id].toY;
-	points.points[3][0] = grounds[id].toX;		points.points[3][1] = grounds[id].toY + 0.5;
-	points.n = 4;
-	return &points;
+	return &grounds[id].points;
 }
 #define STEP_GROUNDVISIBLE		0.05
 static void GroundVisibleTimer(int id, int ms)
 {
-	if (gameState != STARTED) return;
+	if (gameState != STARTED || id < 0) return;
 	grounds[id].color += STEP_GROUNDVISIBLE;
 	if (grounds[id].color >= 1.0) {
 		grounds[id].color = 1.0;
+		grounds[id].hasTimer = 0;
 	}
 	else
 		TimerAdd(GroundVisibleTimer, id, ms + 20);
 }
-static Types groundCollisionTypes = { { ID_PLAYER }, 1 };
-static void GroundCollisionNotifier(int id, int othertype, int otherid, double n[2], double depth)
+static CollisionType groundCollisionTypes = { { ID_PLAYER }, 1 };
+static void GroundCollisionNotifier(int id, int othertype, int otherid, double n[2], double depth, int usev)
 {
 	if (othertype == ID_PLAYER) {
-		if (grounds[id].invisible) {
+		if (grounds[id].invisible && grounds[id].hasTimer == 0) {
 			grounds[id].invisible = 0;
+			grounds[id].hasTimer = 1;
 			TimerAdd(GroundVisibleTimer, id, 20);
 		}
 		switch (grounds[id].traits)
 		{
 		case GROUND_DIE:
-			PlayerMinusLife(0.4 * PLAYERLIFE_MAX);
+			PlayerMinusLife(0.2 * PLAYERLIFE_MAX);
 			break;
 		default:
 			break;
 		}
 	}
 }
-
-int GroundCreate(wchar_t *command)
+int GroundAdd(double fromX, double fromY, double toX, double toY, int traits, int invisible)
 {
-	if (groundsEnd == MAX_GROUNDLEN) return 1;
-	if (swscanf(command, L"%*s%lf%lf%lf%lf%d%d", &grounds[groundsEnd].fromX, &grounds[groundsEnd].fromY,
-		&grounds[groundsEnd].toX, &grounds[groundsEnd].toY, &grounds[groundsEnd].traits, &grounds[groundsEnd].invisible) == 6 &&
-		grounds[groundsEnd].toX >= grounds[groundsEnd].fromX) {
-		++groundsEnd;
+	int i = 0;
+	double lower;
+	if (groundsEnd == MAX_GROUNDLEN) {
+		ErrorPrintf(L"GroundError: Resource used up.");
+		return -1;
+	}
+	grounds[groundsEnd].leftId = grounds[groundsEnd].rightId = -1;
+	for (i = 0; i < groundsEnd; ++i) {
+		if (grounds[i].fromX < toX && fromX < grounds[i].toX)
+			return 1;
+		else if (grounds[i].fromX == toX) {
+			grounds[i].leftId = groundsEnd;
+			grounds[groundsEnd].rightId = i;
+		}
+		else if (grounds[i].toX == fromX) {
+			grounds[i].rightId = groundsEnd;
+			grounds[groundsEnd].leftId = i;
+		}
+	}
+	grounds[groundsEnd].fromX = fromX;
+	grounds[groundsEnd].fromY = fromY;
+	grounds[groundsEnd].toX = toX;
+	grounds[groundsEnd].toY = toY;
+	grounds[groundsEnd].traits = traits;
+	grounds[groundsEnd].invisible = invisible;
+	if (groundsMostId[0] == -1 || fromX < grounds[groundsMostId[0]].fromX)
+		groundsMostId[0] = groundsEnd;
+	if (groundsMostId[1] == -1 || toX > grounds[groundsMostId[1]].toX)
+		groundsMostId[1] = groundsEnd;
+	if (fromY > toY) lower = fromY;
+	else lower = toY;
+	if (groundsLowestID == -1 || grounds[groundsLowestID].fromY < lower && grounds[groundsLowestID].toY < lower)
+		groundsLowestID = groundsEnd;
+	grounds[groundsEnd].color = 0.0;
+	grounds[groundsEnd].hasTimer = 0;
+	if (!grounds[groundsEnd].invisible && gameState == STARTED) {
+		grounds[groundsEnd].hasTimer = 1;
+		TimerAdd(GroundVisibleTimer, groundsEnd, 20);
+	}
+	else if(!grounds[groundsEnd].invisible)
+		grounds[groundsEnd].color = 1.0;
+	grounds[groundsEnd].points.points[0][0] = fromX;	grounds[groundsEnd].points.points[0][1] = fromY + 0.5;
+	grounds[groundsEnd].points.points[1][0] = fromX;	grounds[groundsEnd].points.points[1][1] = fromY;
+	grounds[groundsEnd].points.points[2][0] = toX;		grounds[groundsEnd].points.points[2][1] = toY;
+	grounds[groundsEnd].points.points[3][0] = toX;		grounds[groundsEnd].points.points[3][1] = toY + 0.5;
+	grounds[groundsEnd].points.n = 4;
+	grounds[groundsEnd].points.velocity[0] = 0.0;		grounds[groundsEnd].points.velocity[1] = 0.0;
+	grounds[groundsEnd].points.usev = 1;
+	DrawerAdd(GroundDrawer, groundsEnd, 6);
+	CollisionAdd(GroundCollision, groundsEnd, ID_GROUND, &groundCollisionTypes, GroundCollisionNotifier);
+	++groundsEnd;
+	return groundsEnd;
+}
+static int removedID;
+static int GroundTimerUpdateID(int id)
+{
+	if (removedID == -1)
+		return -1;
+	if (id > removedID)
+		return id - 1;
+	if (id == removedID)
+		return -1;
+	return id;
+}
+
+void GroundRemove(int id)
+{
+	int i;
+	groundsMostId[0] = groundsMostId[1] = 0;
+	groundsLowestID = 0;
+	for (i = 0; i < groundsEnd; ++i) {
+		if (i == id) continue;
+		if (grounds[i].leftId == id)
+			grounds[i].leftId = -1;
+		else if (grounds[i].leftId > id)
+			grounds[i].leftId -= 1;
+		if (grounds[i].rightId == id)
+			grounds[i].rightId = -1;
+		else if (grounds[i].rightId > id)
+			grounds[i].rightId -= 1;
+		if (grounds[i].fromX < grounds[groundsMostId[0]].fromX)
+			groundsMostId[0] = i;
+		if (grounds[i].toX > grounds[groundsMostId[1]].toX)
+			groundsMostId[1] = i;
+		if (max(grounds[groundsLowestID].fromY, grounds[groundsLowestID].toY) < max(grounds[i].fromY, grounds[i].toY))
+			groundsLowestID = i;
+	}
+	--groundsEnd;
+	for (i = id; i <groundsEnd; ++i)
+		memcpy(&grounds[i], &grounds[i + 1], sizeof(grounds[0]));
+	if (groundsEnd != 0) {
+		if (groundsMostId[0] > id) groundsMostId[0] -= 1;
+		if (groundsMostId[1] > id) groundsMostId[1] -= 1;
+		if (groundsLowestID > id) groundsLowestID -= 1;
+	}
+	else
+		groundsMostId[0] = groundsMostId[1] = groundsLowestID = -1;
+	removedID = id;
+	TimerUpdateID(GroundVisibleTimer, GroundTimerUpdateID);
+	DrawerRemove(GroundDrawer, groundsEnd);
+	CollisionRemove(GroundCollision, groundsEnd);
+}
+void GroundClear()
+{
+	int i;
+	for (i = 0; i < groundsEnd; ++i) {
+		DrawerRemove(GroundDrawer, i);
+		CollisionRemove(GroundCollision, i);
+	}
+	removedID = -1;
+	TimerUpdateID(GroundVisibleTimer, GroundTimerUpdateID);
+	groundsEnd = 0;
+	groundsMostId[0] = groundsMostId[1] = groundsLowestID = -1;
+}
+static int GroundRemoveCommand(wchar_t *command)
+{
+	int id;
+	if (swscanf(command, L"%*s%d", &id) && id > 0 && id < groundsEnd) {
+		GroundRemove(id);
 		return 0;
 	}
 	return 1;
 }
-
+static int GroundClearCommand(wchar_t *command)
+{
+	GroundClear();
+	return 0;
+}
+static int GroundCreate(wchar_t *command)
+{
+	double fromX, fromY, toX, toY;
+	int traits, invisible;
+	if (groundsEnd == MAX_GROUNDLEN) return 1;
+	if (swscanf(command, L"%*s%lf%lf%lf%lf%d%d", &fromX, &fromY, &toX, &toY, &traits, &invisible) == 6 && toX > fromX)
+		return GroundAdd(fromX, fromY, toX, toY, traits, invisible) == -1 ? 1 : 0;
+	return 1;
+}
 void GroundInit()
 {
 	backgroundColor = RGB(0xff, 0xff, 0xff);
+	hBrushBackground = CreateSolidBrush(backgroundColor);
 	hPenBorder = CreatePen(PS_SOLID, 1, COLOR_BORDER);
 	hPenNoOutline = CreatePen(PS_NULL, 0, 0);
 	DrawerAdd(BackgroundDrawer, 0, 11);
+	groundsMostId[0] = groundsMostId[1] = groundsLowestID = -1;
 	LoaderAdd(L"border", BorderCreate);
 	LoaderAdd(L"gravity", GravityCreate);
 	LoaderAdd(L"friction", FrictionCreate);
 	LoaderAdd(L"background", BackgroundCreate);
 	LoaderAdd(L"ground", GroundCreate);
+	LoaderAdd(L"groundremove", GroundRemoveCommand);
+	LoaderAdd(L"groundclear", GroundClearCommand);
 }
 void GroundDestroy()
 {
 	DeleteObject(hPenNoOutline);
 	DeleteObject(hPenBorder);
+	DeleteObject(hBrushBackground);
 }
 void GroundStart()
 {
@@ -291,34 +453,23 @@ void GroundStart()
 			DrawerAdd(BorderDrawer, i, 0);
 		CollisionAdd(BorderCollision, i, ID_BORDER, &borderCollisionTypes, BorderCollisionNotifier);
 	}
-	for (i = 0; i < groundsEnd; ++i) {
-		if (!grounds[i].invisible)
-			grounds[i].color = 1.0;
-		else
-			grounds[i].color = 0.0;
-		DrawerAdd(GroundDrawer, i, 6 - grounds[i].traits);
-		if (grounds[i].fromX != grounds[i].toX)
-			CollisionAdd(GroundCollision, i, ID_GROUND, &groundCollisionTypes, GroundCollisionNotifier);
-	}
-	hBrushBackground = CreateSolidBrush(backgroundColor);
 }
 void GroundStop()
 {
 	int i;
 	DeleteObject(hBrushBackground);
-	for (i = 0; i < groundsEnd; ++i) {
-		DrawerRemove(GroundDrawer, i);
-		CollisionRemove(GroundCollision, i);
-	}
 	for (i = 0; i < bordersEnd; ++i) {
 		if (borders[i].visible)
 			DrawerRemove(BorderDrawer, i);
 		CollisionRemove(BorderCollision, i);
 	}
-	bordersEnd = groundsEnd = 0;
+	bordersEnd = 0;
+	GroundClear();
 	groundFriction = 0.0;
 	groundGravity = 0.0;
+	DeleteObject(hBrushBackground);
 	backgroundColor = RGB(0xff, 0xff, 0xff);
+	hBrushBackground = CreateSolidBrush(backgroundColor);
 }
 void GroundPause() {}
 void GroundResume() {}

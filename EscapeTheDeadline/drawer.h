@@ -5,6 +5,7 @@
 #define MIN_WINWIDTH	960
 
 extern int DrawerX, DrawerY;
+extern HWND g_hWnd; // defined in the main.cpp
 
 void DrawerInit(HWND hWnd);
 void DrawerDestroy();

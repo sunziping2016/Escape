@@ -11,6 +11,8 @@
 
 #define MAX_STRLEN		100
 
+HWND g_hWnd;
+
 static TCHAR szWindowClass[MAX_STRLEN];
 static TCHAR szTitle[MAX_STRLEN];
 
@@ -45,6 +47,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		MessageBox(NULL, TEXT("Call to CreateWindow failed!"), szTitle, MB_OK);
 		return EXIT_FAILURE;
 	}
+	g_hWnd = hWnd;
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 	while (GetMessage(&msg, NULL, 0, 0)) {
@@ -87,6 +90,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_KEYUP:
 		KeyboardKeyUp(wParam);
+		break;
+	case WM_CHAR:
+		KeyboardKeyChar(wParam);
 		break;
 	case WM_LBUTTONDOWN:
 		break;

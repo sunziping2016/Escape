@@ -146,11 +146,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="bonus.cpp" />
     <ClCompile Include="collision.cpp" />
     <ClCompile Include="commonui.cpp" />
     <ClCompile Include="deathmenu.cpp" />
     <ClCompile Include="drawer.cpp" />
     <ClCompile Include="engine.cpp" />
+    <ClCompile Include="generator.cpp" />
     <ClCompile Include="grid.cpp" />
     <ClCompile Include="ground.cpp" />
     <ClCompile Include="keyboard.cpp" />
@@ -164,11 +166,13 @@
     <ClCompile Include="world.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="bonus.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="commonui.h" />
     <ClInclude Include="deathmenu.h" />
     <ClInclude Include="drawer.h" />
     <ClInclude Include="engine.h" />
+    <ClInclude Include="generator.h" />
     <ClInclude Include="grid.h" />
     <ClInclude Include="ground.h" />
     <ClInclude Include="keyboard.h" />

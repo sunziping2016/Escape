@@ -3,6 +3,7 @@
 #include <tchar.h>
 
 int LoaderLoad(TCHAR *filename);
+int LoaderRun(TCHAR *buffer);
 
 void LoaderInit();
 void LoaderDestroy();

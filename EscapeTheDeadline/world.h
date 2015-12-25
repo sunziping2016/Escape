@@ -4,7 +4,7 @@
 
 // Create a virtual coordinate system regardless of the real windows size.
 // And user can set tracked object when it showed always be shown in the window
-
+#define ID_VIEWER		3
 #define ROUND(pos)		((int)lround(pos))
 
 extern double viewX, viewY;
@@ -16,6 +16,8 @@ void WorldStart();
 void WorldStop();
 void WorldPause();
 void WorldResume();
+
+void WorldProcess();
 
 int WorldX(double x);
 int WorldY(double y);

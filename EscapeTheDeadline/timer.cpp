@@ -1,5 +1,6 @@
 #include "timer.h"
 #include "assert.h"
+#include "commonui.h"
 
 #define MAX_TIMERLEN	200
 #define MAX_TIMERELAPSE	20
@@ -33,7 +34,10 @@ static void copyTimer(int to, int from)
 int TimerAdd(void(*func)(int id, int ms), int id, int ms)
 {
 	int low = timersBegin, high = prevIter(timersEnd), i;
-	if (timersBegin == nextIter(timersEnd)) return 1;
+	if (timersBegin == nextIter(timersEnd)) {
+		ErrorPrintf(L"TimerError: Resource used up.");
+		return 1;
+	}
 	while (low != high)
 	{
 		int i = midIter(low, high);
@@ -76,4 +80,14 @@ int TimerProcess(HWND hWnd)
 		timers[i].ms -= ms;
 	//LogPrintf("%ld:	TimerProcess End: %d\n", time, ms);
 	return 0;
+}
+
+void TimerUpdateID(void(*func)(int id, int ms), int(*updateId)(int id))
+{
+	int i = timersBegin;
+	while (i != timersEnd) {
+		if (timers[i].func == func)
+			timers[i].id = (*updateId)(timers[i].id);
+		i = nextIter(i);
+	}
 }

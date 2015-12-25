@@ -10,6 +10,8 @@
 #include "grid.h"
 #include "deathmenu.h"
 #include "commonui.h"
+#include "generator.h"
+#include "bonus.h"
 
 int gameState;
 int gamePaused;
@@ -25,9 +27,11 @@ static void StartState(int newState)
 	case STARTED:
 		CommonUIStart();
 		WorldStart();
+		GeneratorStart();
 		GridStart();
 		GroundStart();
 		PlayerStart();
+		BonusStart();
 		PausemenuTriggerStart();
 		break;
 	case DIED:
@@ -49,9 +53,11 @@ static void StopState()
 		if (gamePaused)
 			EngineResume();
 		PausemenuTriggerStop();
+		BonusStop();
 		PlayerStop();
 		GroundStop();
 		GridStop();
+		GeneratorStop();
 		WorldStop();
 		CommonUIStop();
 		break;
@@ -68,11 +74,13 @@ void EngineResume()
 	WorldResume();
 	GroundResume();
 	PlayerResume();
+	BonusResume();
 	gamePaused = 0;
 }
 void EnginePause()
 {
 	gamePaused = 1;
+	BonusPause();
 	PlayerPause();
 	GroundPause();
 	WorldPause();
@@ -87,17 +95,21 @@ void EngineInit()
 	PausemenuInit();
 	CommonUIInit();
 	WorldInit();
+	GeneratorInit();
 	GridInit();
 	GroundInit();
 	PlayerInit();
+	BonusInit();
 	StartState(NOTSTARTED);
 	gamePaused = 0;
 }
 void EngineDestroy()
 {
+	BonusDestroy();
 	PlayerDestroy();
 	GroundDestroy();
 	GridDestroy();
+	GeneratorDestroy();
 	WorldDestroy();
 	CommonUIDestroy();
 	PausemenuDestroy();
@@ -120,5 +132,6 @@ void EngineStop()
 void EngineProcess()
 {
 	if (gameState != STARTED || gamePaused) return;
+	WorldProcess();
 	CollisionProcess();
 }

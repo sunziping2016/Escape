@@ -12,6 +12,7 @@
 #include "ground.h"
 #include "commonui.h"
 #include "player.h"
+#include "bonus.h"
 
 #define DOUBLEJUMP			0x01
 #define LARGER				0x02
@@ -21,7 +22,7 @@
 #define LASER				0x20
 #define DEAD				0x40
 
-#define SIZE_PLAYER			20.0
+#define SIZE_PLAYER			25.0
 
 #define LEFTTOP				0
 #define CENTER				1
@@ -51,9 +52,15 @@
 int playerIsDied;
 static HFONT hFontScore;
 
+static COLORREF playerColorsNormal[2] = {
+	RGB(0x8b, 0x00, 0x8b),			// !isOnground
+	RGB(0xee, 0x00, 0xee)			// isOnground
+};
+
 static COLORREF playerColors[] = {
-	RGB(0x56, 0x3d, 0x7c),			// Normal
-	RGB(0xff, 0xff, 0xff)			// Nodeath
+	RGB(0x8b, 0x00, 0x8b),			// Normal
+	RGB(0xff, 0xff, 0xff),			// Nodeath
+	RGB(0x7c, 0xfc, 0x00)
 };
 #define NUM_COLORS		(sizeof(playerColors) / sizeof(playerColors[0]))
 
@@ -67,9 +74,11 @@ static struct
 	int colorState[NUM_COLORS];
 	int colorAlways[NUM_COLORS]; // 0 Never on, 1 Always on
 	int colorBlink[NUM_COLORS];  // 0 Never Blink, -1 Always Blink, bBlink times;
+	int colorOnground;
 	// Collision State
-	double collisionN[2];
-	int isOnCollision, isOnGround, isOnSqueeze[2];
+	double groundN[2];
+	int isOnCollision, isOnGround;
+	CollisionState collision;
 	// Score and life
 	int score, displayedScore;
 	double life, displayedLife, lifeV;
@@ -78,6 +87,8 @@ static struct
 	// Managed by others
 	double friction, jumpSpeed, jumpP[2];
 	int controllable;
+	// Force right?
+	double forceRight;
 } player;
 static int hasPlayer, hasPlayerTimer;
 
@@ -134,6 +145,11 @@ static void PlayerColorUpdate()
 				PlayerColorOn(i);
 		}
 	}
+	if (player.isOnGround && player.colorOnground < STEP_COLOR)
+		++player.colorOnground;
+	else if (!player.isOnGround && player.colorOnground > 0)
+		--player.colorOnground;
+	playerColors[0] = DrawerColor(playerColorsNormal[1], playerColorsNormal[0], (double)player.colorOnground / STEP_COLOR);
 }
 static COLORREF PlayerColorFill()
 {
@@ -169,7 +185,7 @@ static void PlayerDrawer(int id, HDC hDC)
 	DeleteObject(hBrush);
 	DeleteObject(hPen);
 }
-#define SCORE_BUFFERSIZE	20
+#define SCORE_BUFFERSIZE	100
 static void PlayerScorelifeDrawer(int id, HDC hDC)
 {
 	HPEN hPen;
@@ -179,7 +195,7 @@ static void PlayerScorelifeDrawer(int id, HDC hDC)
 	int len;
 	SIZE size;
 	if (gameState != STARTED || hasPlayer == 0) return;
-	swprintf(buffer, L"Score: %06d", player.displayedScore);
+	swprintf(buffer, L"Score: %6d        Distance: %8.1lf", player.displayedScore, player.pos[0]);
 	len = (int)wcslen(buffer);
 	SetTextColor(hDC, COLOR_SCORE);
 	SelectObject(hDC, hFontScore);
@@ -203,108 +219,191 @@ static void PlayerScorelifeDrawer(int id, HDC hDC)
 #define factor1 0.1
 #define factor2 (2 * sqrt(factor1))
 
-#define DELTAN_LEN		10
+#define DELTAN_LEN			10
+#define MAX_TYPEIDNUM		20
 
-static Types types = { { ID_BORDER, ID_GROUND }, 2 };
-static double orignPos[2], maxDelta[2];
-static double deltaN[DELTAN_LEN][3];
-static int deltaNEnd;
-static Points *PlayerCollision(int id)
+static CollisionType types = { { ID_GROUND, ID_BONUS }, 2 };
+static double orignPos[2], maxDepth;
+static int onGroundTypeIds[MAX_TYPEIDNUM][2], onGroundTypeIdsEnd;
+static CollisionState *PlayerCollision(int id, int othertype, int otherid)
 {
-	static Points points;
-	points.points[0][0] = player.pos[0] - player.size / 2.0;		points.points[0][1] = player.pos[1] - player.size / 2.0;
-	points.points[1][0] = player.pos[0] + player.size / 2.0;		points.points[1][1] = player.pos[1] - player.size / 2.0;
-	points.points[2][0] = player.pos[0] + player.size / 2.0;		points.points[2][1] = player.pos[1] + player.size / 2.0;
-	points.points[3][0] = player.pos[0] - player.size / 2.0;		points.points[3][1] = player.pos[1] + player.size / 2.0;
-	points.points[4][0] = player.pos[0] - player.size / 2.0;		points.points[4][1] = player.pos[1] - player.size / 2.0;
-	points.n = 5;
-	return &points;
+	player.collision.velocity[0] = player.v[0];
+	player.collision.velocity[1] = player.v[1];
+	player.collision.points[0][0] = player.pos[0] - player.size / 2.0;	player.collision.points[0][1] = player.pos[1] - player.size / 2.0;
+	player.collision.points[1][0] = player.pos[0] + player.size / 2.0;	player.collision.points[1][1] = player.pos[1] - player.size / 2.0;
+	player.collision.points[2][0] = player.pos[0] + player.size / 2.0;	player.collision.points[2][1] = player.pos[1] + player.size / 2.0;
+	player.collision.points[3][0] = player.pos[0] - player.size / 2.0;	player.collision.points[3][1] = player.pos[1] + player.size / 2.0;
+	player.collision.points[4][0] = player.pos[0] - player.size / 2.0;	player.collision.points[4][1] = player.pos[1] - player.size / 2.0;
+	player.collision.n = 5;
+	player.collision.usev = 1;
+	if (player.isOnGround)
+		player.collision.usev = 0;
+	/*if (othertype == ID_GROUND) {
+		for (int i = 0; i < onGroundTypeIdsEnd; ++i) {
+			if (onGroundTypeIds[i][0] == ID_GROUND && (otherid == onGroundTypeIds[i][1] ||
+				grounds[otherid].leftId == onGroundTypeIds[i][1] && grounds[otherid].fromY == grounds[onGroundTypeIds[i][1]].toY ||
+				grounds[otherid].rightId == onGroundTypeIds[i][1] && grounds[otherid].toY == grounds[onGroundTypeIds[i][1]].fromY))
+				player.collision.usev = 0;
+		}
+	}
+	player.collision.usev = 1;*/
+	return &player.collision;
 }
-static void PlayerCollisionNotifier(int id, int othertype, int otherid, double n[2], double depth)
+#define COLLISIONN_NUM			20
+static double collisionN[COLLISIONN_NUM][3];
+static int collisionNEnd;
+static void PlayerOnGroundNotifier(int othertype, int otherid, double n[2], double depth, int usev)
 {
-	int i, j;
-	double delta, p[2] = { -n[1], n[0] };
-	double newv, v[2], directionV, sum;
+	if (othertype != ID_GROUND) return;
+	if (collisionNEnd != COLLISIONN_NUM) {
+		collisionN[collisionNEnd][0] = n[0];
+		collisionN[collisionNEnd][1] = n[1];
+		collisionN[collisionNEnd][2] = depth;
+		++collisionNEnd;
+	}
+	if (onGroundTypeIdsEnd != MAX_TYPEIDNUM) {
+		onGroundTypeIds[onGroundTypeIdsEnd][0] = othertype;
+		onGroundTypeIds[onGroundTypeIdsEnd][1] = otherid;
+		++onGroundTypeIdsEnd;
+	}
+}
+static void PlayerCollisionNotifier(int id, int othertype, int otherid, double n[2], double depth, int usev)
+{
+	double p[2] = { -n[1], n[0] };
+	double newv, v[2], directionV, pos[2], lenv;
+	if (othertype == ID_BONUS) {
+		PlayerColorBlink(2, 1);
+		return;
+	}
+	if (depth < maxDepth) return;
+	if (usev) {
+		lenv = sqrt(player.v[0] * player.v[0] + player.v[1] * player.v[1]);
+		pos[0] = player.v[0] / lenv;
+		pos[1] = player.v[1] / lenv;
+	}
+	else {
+		pos[0] = n[0];
+		pos[1] = n[1];
+	}
 	newv = p[0] * player.v[0] + p[1] * player.v[1];
 	directionV = n[0] * player.v[0] + n[1] * player.v[1];
 	v[0] = newv * p[0];
 	v[1] = newv * p[1];
 	player.isOnCollision = 1;
-	if (othertype == ID_GROUND)
-		player.isOnGround = 1;
-	if (deltaNEnd != DELTAN_LEN) {
-		deltaN[deltaNEnd][0] = n[0];
-		deltaN[deltaNEnd][1] = n[1];
-		deltaN[deltaNEnd][3] = depth;
-		++deltaNEnd;
-	}
 	// Correct the player's position
-	for (i = 0; i < 2; ++i) {
-		if (!player.isOnSqueeze[i]) {
-			delta = depth * n[i];
-			if (maxDelta[i] * delta >= 0.0) {
-				if (fabs(delta) >= fabs(maxDelta[i])) {
-					maxDelta[i] = delta;
-					player.pos[i] = orignPos[i] - delta;
-					if (directionV > 0.0)
-						player.v[i] = v[i];
-					sum = 0.0;
-					for (j = 0; j < deltaNEnd; ++j)
-						sum += deltaN[j][i];
-					player.collisionN[i] = sum / deltaNEnd;
-				}
-			}
-			else {
-				player.isOnSqueeze[i] = 1;
-				ErrorPrintf(L"PlayerEorror: Squeezed.");
-			}
-		}
-	}
+	player.v[0] = v[0];
+	player.v[1] = v[1];
+	player.pos[0] -= pos[0] * depth;
+	player.pos[1] -= pos[1] * depth;
+	player.groundN[0] = n[0];
+	player.groundN[1] = n[1];
+	maxDepth = depth;
 }
 
 #define VELOCITY_JUMP		20
 #define ACCERATION_CONTOL	1
+#define GROUND_EPSILON		1e-8
 
 static void PlayerPosUpdate()
 {
-	double p[2], f[2];
+	double p[2], f[2], temp;
+	int i;
+	CollisionState cs;
 	player.sizeV += factor1 * (player.aimedSize - player.size) - factor2 * player.sizeV;
 	player.size += player.sizeV;
-	if (player.isOnGround) {
-		if (KeyboardIsDown[VK_SPACE]) {
-			player.v[0] -= VELOCITY_JUMP * player.collisionN[0];
-			player.v[1] -= VELOCITY_JUMP * player.collisionN[1];
-		}
-		player.v[0] += ACCERATION_CONTOL * (KeyboardIsDown[VK_RIGHT] - KeyboardIsDown[VK_LEFT]);
-		//player.v[1] += ACCERATION_CONTOL * (KeyboardIsDown[VK_DOWN] - KeyboardIsDown[VK_UP]);
+	cs.points[0][0] = player.collision.points[0][0] - GROUND_EPSILON; cs.points[0][1] = player.collision.points[0][1] - GROUND_EPSILON;
+	cs.points[1][0] = player.collision.points[1][0] + GROUND_EPSILON; cs.points[1][1] = player.collision.points[1][1] - GROUND_EPSILON;
+	cs.points[2][0] = player.collision.points[2][0] + GROUND_EPSILON; cs.points[2][1] = player.collision.points[2][1] + GROUND_EPSILON;
+	cs.points[3][0] = player.collision.points[3][0] - GROUND_EPSILON; cs.points[3][1] = player.collision.points[3][1] + GROUND_EPSILON;
+	cs.points[4][0] = player.collision.points[4][0] - GROUND_EPSILON; cs.points[4][1] = player.collision.points[4][1] - GROUND_EPSILON;
+	cs.n = 5;
+	cs.usev = 0;
+	collisionNEnd = 0;
+	onGroundTypeIdsEnd = 0;
+	CollisionQuery(&cs, &types, PlayerOnGroundNotifier);
+
+	/*wchar_t buffer[200] = L"", buffer2[200];
+	for (int i = 0; i < onGroundTypeIdsEnd; ++i) {
+		swprintf(buffer2, L"%d-%d  ", onGroundTypeIds[i][0], onGroundTypeIds[i][1]);
+		wcscat(buffer, buffer2);
+	}
+	ErrorPrintf(L"%s", buffer);*/
+
+	if (collisionNEnd) {
+		double maxDepth = collisionN[0][3];
+		player.isOnGround = 1;
+		player.groundN[0] = collisionN[0][0];
+		player.groundN[1] = collisionN[0][1];
+		for (i = 1; i < collisionNEnd; ++i)
+			if (collisionN[i][3] > maxDepth) {
+				maxDepth = collisionN[i][3];
+				player.groundN[0] = collisionN[i][0];
+				player.groundN[1] = collisionN[i][1];
+			}
+	}
+	else {
+		player.isOnGround = 0;
+		player.groundN[0] = player.groundN[1] = 0.0;
 	}
 	if (player.isOnGround) {
-		p[0] = -player.collisionN[1];  p[1] = player.collisionN[0];
+		p[0] = -player.groundN[1];  p[1] = player.groundN[0];
 		player.v[0] += groundGravity * p[1] * p[0];
 		player.v[1] += groundGravity * p[1] * p[1];
-		if (sqrt(player.v[0] * player.v[0] + player.v[1] * player.v[1]) < groundGravity * groundFriction)
+		temp = groundGravity * player.groundN[1] * groundFriction;
+		if (sqrt(player.v[0] * player.v[0] + player.v[1] * player.v[1]) <= temp)
 			player.v[0] = player.v[1] = 0.0;
 		else {
-			f[0] = groundGravity * groundFriction * p[0];
-			f[1] = groundGravity * groundFriction * p[1];
+			f[0] = temp * p[0];
+			f[1] = temp * p[1];
 			if (player.v[0] * f[0] + player.v[1] * f[1] > 0.0) {
 				f[0] = -f[0];
 				f[1] = -f[1];
 			}
 			player.v[0] += f[0];
-			player.v[1] -= f[1];
+			player.v[1] += f[1];
 		}
 	}
 	else
 		player.v[1] += groundGravity;
+	if (player.isOnGround) {
+		if (!commandLineFocus && KeyboardIsDown[VK_SPACE]) {
+			player.v[0] -= VELOCITY_JUMP * player.groundN[0];
+			player.v[1] -= VELOCITY_JUMP * player.groundN[1];
+		}
+		if (!commandLineFocus) {
+			f[0] = ACCERATION_CONTOL * (KeyboardIsDown[VK_RIGHT] - KeyboardIsDown[VK_LEFT]);
+			f[1] = ACCERATION_CONTOL * (KeyboardIsDown[VK_DOWN] - KeyboardIsDown[VK_UP]);
+		}
+		else
+			f[0] = f[1] = 0.0;
+		temp = f[0] * p[0] + f[1] * p[1];
+		player.v[0] += temp * p[0];
+		player.v[1] += temp * p[1];
+		if (f[0] * player.groundN[0] + f[1] * player.groundN[1] < 0.0 && player.groundN[1] * groundGravity <= 0.0) {
+			player.pos[0] -= 2 * GROUND_EPSILON * player.groundN[0];
+			player.pos[1] -= 2 * GROUND_EPSILON * player.groundN[1];
+		}
+		if (player.forceRight != 0.0 && fabs(player.v[0]) < fabs(player.forceRight)) {
+			if (player.forceRight > 0.0) {
+				if (player.v[0] + ACCERATION_CONTOL / 2.0 < player.forceRight)
+					player.v[0] += ACCERATION_CONTOL;
+				else
+					player.v[0] = player.forceRight;
+			}
+			else {
+				if (player.v[0] - ACCERATION_CONTOL / 2.0  > player.forceRight)
+					player.v[0] -= ACCERATION_CONTOL / 2.0;
+				else
+					player.v[0] = player.forceRight;
+			}
+		}
+	}
 	player.pos[0] += player.v[0];
 	player.pos[1] += player.v[1];
-	player.collisionN[0] = player.collisionN[1] = 0.0;
-	player.isOnCollision = player.isOnGround = player.isOnSqueeze[0] = player.isOnSqueeze[0] = 0;
+	player.isOnCollision = 0;
 	orignPos[0] = player.pos[0];
 	orignPos[1] = player.pos[1];
-	maxDelta[0] = maxDelta[1] = 0.0;
-	deltaNEnd = 0;
+	maxDepth = 0.0;
 }
 static void PlayerScoreUpdate()
 {
@@ -334,7 +433,7 @@ static void PlayerTimer(int id, int ms)
 }
 static int PlayerCreate(wchar_t *command)
 {
-	if (swscanf(command, L"%*s%lf%lf", &player.pos[0], &player.pos[1]) == 2) {
+	if (swscanf(command, L"%*s%lf%lf%lf%lf", &player.pos[0], &player.pos[1], &player.v[0], &player.v[1]) == 4) {
 		hasPlayer = 1;
 		return 0;
 	}
@@ -359,6 +458,12 @@ static void PlayerNodeathTimerStart(int ms)
 	PlayerColorStartBlink(COLOR_NODEATH);
 	TimerAdd(PlayerNodeathTimer, nodeathTimerID, ms);
 }
+int ForceRightCreate(wchar_t *command)
+{
+	if (swscanf(command, L"%*s%lf", &player.forceRight) == 1)
+		return 0;
+	return 1;
+}
 void PlayerInit()
 {
 	hFontScore = CreateFont(FONTSIZE_SCORE, 0, 0, 0, 0, FALSE, FALSE, FALSE,
@@ -366,6 +471,7 @@ void PlayerInit()
 	DrawerAdd(PlayerDrawer, 0, 5);
 	DrawerAdd(PlayerScorelifeDrawer, 0, 1);
 	LoaderAdd(L"player", PlayerCreate);
+	LoaderAdd(L"forceright", ForceRightCreate);
 }
 void PlayerDestroy()
 {
@@ -375,12 +481,11 @@ void PlayerStart()
 {
 	int i;
 	playerIsDied = 0;
-	player.v[0] = player.v[1] = 0.0;
 	player.size = 2.0;
 	player.aimedSize = SIZE_PLAYER;
 	player.sizeV = 0.0;
-	player.collisionN[0] = player.collisionN[1] = 0.0;
-	player.isOnCollision = player.isOnGround = player.isOnSqueeze[0] = player.isOnSqueeze[0] = 0;
+	player.groundN[0] = player.groundN[1] = 0.0;
+	player.isOnCollision = player.isOnGround = 0;
 	player.score = player.displayedScore = 0;
 	player.life = player.displayedLife = PLAYERLIFE_MAX;
 	player.lifeV = 0.0;
@@ -396,7 +501,7 @@ void PlayerStart()
 			player.colorAlways[i] = 0;
 			player.colorBlink[i] = 0;
 		}
-	};
+	}
 	PlayerNodeathTimerStart(COOLTIME_INJURED);
 	WorldSetTracked(PlayerTracked, 0);
 	CollisionAdd(PlayerCollision, 0, ID_PLAYER, &types, PlayerCollisionNotifier);
@@ -407,6 +512,8 @@ void PlayerStop()
 	CollisionRemove(PlayerCollision, 0);
 	hasPlayer = 0;
 	player.pos[0] = player.pos[1] = 0.0;
+	player.v[0] = player.v[1] = 0.0;
+	player.forceRight = 0.0;
 }
 void PlayerPause() {}
 void PlayerResume()

@@ -1,4 +1,5 @@
 #include "drawer.h"
+#include "commonui.h"
 
 #define MAX_DRAWERNUM		200
 
@@ -54,6 +55,7 @@ void DrawerProcess(HDC hDC)
 {
 	int i;
 	RECT rect = { 0, 0, DrawerX, DrawerY };
+	SetBkMode(hDCbuf, TRANSPARENT);
 	FillRect(hDCbuf, &rect, hBrushBackground);
 	for (i = 0; i < drawersEnd; ++i)
 		(*drawers[i].func)(drawers[i].id, hDCbuf);
@@ -70,7 +72,10 @@ static void copyDrawer(int to, int from)
 int DrawerAdd(void(*func)(int id, HDC hDC), int id, int priority)
 {
 	int low = 0, high = drawersEnd - 1, i;
-	if (drawersEnd == MAX_DRAWERNUM) return 1;
+	if (drawersEnd == MAX_DRAWERNUM) {
+		ErrorPrintf(L"DrawerError: Resource used up.");
+		return 1;
+	}
 	while (low < high)
 	{
 		int i = (low + high) / 2;

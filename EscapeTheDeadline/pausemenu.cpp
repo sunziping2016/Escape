@@ -4,6 +4,7 @@
 #include <string.h>
 #include <math.h>
 #include "pausemenu.h"
+#include "commonui.h"
 
 #include "timer.h"
 #include "drawer.h"
@@ -138,7 +139,7 @@ static void PausemenuTimer(int id, int ms)
 			}
 		}
 	}
-	else if (KeyboardIsDown[VK_SPACE] || KeyboardIsDown[VK_RETURN] || KeyboardIsDown[VK_ESCAPE]) {
+	else if (!commandLineFocus && KeyboardIsDown[VK_SPACE] || KeyboardIsDown[VK_RETURN] || KeyboardIsDown[VK_ESCAPE]) {
 		if (selected == 0 || KeyboardIsDown[VK_ESCAPE]) {
 			menustate = FLYOUT;
 			for (i = 0; i < menuEnd; ++i)
@@ -223,7 +224,7 @@ void PausemenuDestroy()
 static void PausemenuTriggerTimer(int id, int ms)
 {
 	if (gameState != STARTED) return;
-	if (gamePaused == 0 && KeyboardIsDown[VK_ESCAPE])
+	if (gamePaused == 0 && !commandLineFocus && KeyboardIsDown[VK_ESCAPE])
 		EnginePause();
 	TimerAdd(PausemenuTriggerTimer, id, ms + 20);
 }

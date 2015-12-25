@@ -19,6 +19,17 @@ static struct
 static int commandsEnd;
 static wchar_t lastFile[MAX_PATH];
 
+int LoaderRun(TCHAR *buffer)
+{
+	int i;
+	wchar_t command[BUFFERSIZE];
+	if (buffer[0] == '#') return 0;
+	if (swscanf(buffer, L"%s", command) != 1) return 0;
+	for (i = 0; i < commandsEnd; ++i)
+		if (wcscmp(Commands[i].commandName, command) == 0)
+			return Commands[i].commandFunc(buffer);
+	return 1;
+}
 int LoaderLoad(TCHAR *filename)
 {
 	wchar_t buffer[BUFFERSIZE], command[BUFFERSIZE];
@@ -29,6 +40,7 @@ int LoaderLoad(TCHAR *filename)
 		++line;
 		if (buffer[0] == '#') continue;
 		if (swscanf(buffer, L"%s", command) != 1) continue;
+		ret = 0;
 		for (i = 0; i < commandsEnd; ++i)
 			if (wcscmp(Commands[i].commandName, command) == 0) {
 				ret = Commands[i].commandFunc(buffer);

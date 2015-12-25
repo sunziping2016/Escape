@@ -9,6 +9,7 @@
 #include "keyboard.h"
 #include "engine.h"
 #include "loader.h"
+#include "commonui.h"
 
 #define GAMEFILE_MAXLEN			50
 
@@ -147,9 +148,9 @@ static void StartmenuTimer(int id, int ms)
 		else
 			--darking;
 	}
-	else if (KeyboardIsDown[VK_ESCAPE])
+	else if (!commandLineFocus && KeyboardIsDown[VK_ESCAPE])
 		EngineStop();
-	else if (KeyboardIsDown[VK_SPACE] || KeyboardIsDown[VK_RETURN] || KeyboardIsDown[VK_RIGHT]) {
+	else if (!commandLineFocus && KeyboardIsDown[VK_SPACE] || KeyboardIsDown[VK_RETURN] || KeyboardIsDown[VK_RIGHT]) {
 		wcscpy(filename, GAMEFILE_DIR);
 		wcscat(filename, gamefiles[selected]);
 		wcscat(filename, GAMEFILE_EXTENSION);
@@ -159,8 +160,8 @@ static void StartmenuTimer(int id, int ms)
 	else {
 		selected = (selected + KeyboardGetNum[VK_DOWN] - KeyboardGetNum[VK_UP]
 			+ 3 * KeyboardGetNum[VK_PRIOR] - 3 * KeyboardGetNum[VK_NEXT] + 5 * gamefilesEnd) % gamefilesEnd;
-		if (KeyboardIsDown[VK_HOME]) selected = 0;
-		else if (KeyboardIsDown[VK_END]) selected = gamefilesEnd - 1;
+		if (!commandLineFocus && KeyboardIsDown[VK_HOME]) selected = 0;
+		else if (!commandLineFocus && KeyboardIsDown[VK_END]) selected = gamefilesEnd - 1;
 		distance = (double)selected * itemSize.cy - nowpos;
 		nowvelocity += factor1 * distance - factor2 * nowvelocity;
 		nowpos += nowvelocity;

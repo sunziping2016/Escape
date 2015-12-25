@@ -8,6 +8,7 @@
 #include "engine.h"
 #include "keyboard.h"
 #include "player.h"
+#include "commonui.h"
 
 #define DEATHMENU_LOSETITLE		TEXT("You lose!")
 #define DEATHMENU_WINTITLE		TEXT("You win!")
@@ -90,9 +91,9 @@ void DeathmenuTimer(int id, int ms)
 		if (darkstep == STEP_DARK)
 			EngineStart(NOTSTARTED);
 	}
-	else if (KeyboardIsDown[VK_SPACE] || KeyboardIsDown[VK_RETURN])
+	else if (!commandLineFocus && KeyboardIsDown[VK_SPACE] || KeyboardIsDown[VK_RETURN])
 		menuState = END;
-	else if (KeyboardIsDown[VK_ESCAPE])
+	else if (!commandLineFocus && KeyboardIsDown[VK_ESCAPE])
 		EngineStop();
 	TimerAdd(DeathmenuTimer, 0, ms + 20);
 }
@@ -126,7 +127,7 @@ void DeathmenuStart()
 		deathmenuTitle = DEATHMENU_WINTITLE;
 		deathmenuTitleColor = COLOR_TITLE_WIN;
 	}
-	swprintf(deathmenuScore, L"Your score: %06d", PlayerGetScore());
+	swprintf(deathmenuScore, L"Your score: %6d", PlayerGetScore());
 	TimerAdd(DeathmenuTimer, 0, 20);
 }
 void DeathmenuStop() {}
